@@ -158,9 +158,9 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold mb-4">Pháp lý</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Điều khoản</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Riêng tư</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Cookie</a></li>
+                <li><Link href="/terms" className="hover:text-white transition-colors">Điều khoản</Link></li>
+                <li><Link href="/privacy" className="hover:text-white transition-colors">Riêng tư</Link></li>
+                <li><Link href="/cookies" className="hover:text-white transition-colors">Cookie</Link></li>
               </ul>
             </div>
           </div>
