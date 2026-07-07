@@ -1,0 +1,12 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      // Ảnh asset serve từ Cloudflare R2 public bucket
+      { protocol: "https", hostname: "*.r2.dev" },
+    ],
+  },
+};
+
+export default nextConfig;

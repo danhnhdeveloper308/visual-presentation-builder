@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  avatarUrl    String?
+  passwordHash String? // null nếu chỉ login Google
+  googleId     String?  @unique
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions       Session[]
+  projects       Project[]
+  assets         Asset[]
+  collaborations ProjectCollaborator[]
+}
+
+model Role {
+  id          String  @id @default(cuid())
+  name        String  @unique // "admin" | "user"
+  description String?
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id     String @id @default(cuid())
+  action String @unique // format "resource:action", vd "project:create"
+
+  roles RolePermission[]
+}
+
+// M2M Role <-> Permission
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  replacedByHash   String? // reuse detection: token này đã rotate sang hash nào
+  createdAt        DateTime  @default(now())
+
+  @@index([userId])
+}
+
+enum ProjectStatus {
+  draft
+  published
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id])
+  content      Json // Presentation JSON — validate bằng zod @repo/shared trước khi lưu
+  revision     Int           @default(0) // optimistic concurrency — lệch thì 409
+  thumbnailUrl String?
+  status       ProjectStatus @default(draft)
+  deletedAt    DateTime? // soft delete
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  collaborators ProjectCollaborator[]
+
+  @@index([ownerId])
+}
+
+enum CollaboratorRole {
+  editor
+  viewer
+}
+
+// Tạo sẵn cho phase collaboration, chưa dùng
+model ProjectCollaborator {
+  id        String           @id @default(cuid())
+  projectId String
+  userId    String
+  role      CollaboratorRole
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  key       String   @unique // object key trên Cloudflare R2
+  url       String // public URL (CLOUDFLARE_R2_PUBLIC_URL + key)
+  mimeType  String
+  sizeBytes Int
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+model Theme {
+  id            String   @id @default(cuid())
+  name          String
+  config        Json // font/màu/background preset
+  isSystemTheme Boolean  @default(false)
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Template {
+  id           String   @id @default(cuid())
+  title        String
+  thumbnailUrl String?
+  content      Json // Presentation mẫu
+  category     String
+  isPublic     Boolean  @default(false)
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category])
+}

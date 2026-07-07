@@ -1,0 +1,25 @@
+import { z } from "zod";
+import { LIMITS } from "../constants/limits";
+import { presentationSchema } from "./presentation";
+
+export const createProjectSchema = z.object({
+  title: z.string().min(1, "Tên project không được để trống").max(LIMITS.TITLE_MAX),
+});
+
+/**
+ * Save project: gửi kèm `revision` hiện tại — server so khớp, lệch trả 409
+ * (optimistic concurrency, xem docs/ARCHITECTURE.md mục 5).
+ */
+export const saveProjectSchema = z.object({
+  content: presentationSchema,
+  revision: z.number().int().min(0),
+});
+
+export const updateProjectMetaSchema = z.object({
+  title: z.string().min(1).max(LIMITS.TITLE_MAX).optional(),
+  status: z.enum(["draft", "published"]).optional(),
+});
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type SaveProjectInput = z.infer<typeof saveProjectSchema>;
+export type UpdateProjectMetaInput = z.infer<typeof updateProjectMetaSchema>;
