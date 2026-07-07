@@ -43,64 +43,100 @@ export function RegisterForm() {
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-xl">Đăng ký</CardTitle>
-        <CardDescription>Tạo tài khoản Visual Presentation Builder</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Tên</Label>
-            <Input
-              id="name"
-              autoComplete="name"
-              aria-invalid={!!errors.name}
-              {...form.register("name")}
-            />
-            {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
+    <div className="w-full max-w-md">
+      <Card className="border-0 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-accent/5 rounded-lg pointer-events-none" />
+        <CardHeader className="relative pb-8 pt-10 px-8">
+          <div className="mb-2">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
+              Đăng ký
+            </CardTitle>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              aria-invalid={!!errors.email}
-              {...form.register("email")}
-            />
-            {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Mật khẩu</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              aria-invalid={!!errors.password}
-              {...form.register("password")}
-            />
-            {errors.password && (
-              <p className="text-destructive text-sm">{errors.password.message}</p>
+          <CardDescription className="text-base">
+            Bắt đầu tạo slide chuyên nghiệp ngay
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="relative flex flex-col gap-6 px-8 pb-10">
+          <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="name" className="text-sm font-semibold">
+                Tên
+              </Label>
+              <Input
+                id="name"
+                placeholder="Tên của bạn"
+                autoComplete="name"
+                aria-invalid={!!errors.name}
+                className="h-11 border-2 border-border bg-white/50 backdrop-blur-sm focus:border-secondary focus:bg-white transition-all"
+                {...form.register("name")}
+              />
+              {errors.name && (
+                <p className="text-destructive text-xs font-medium">{errors.name.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="email" className="text-sm font-semibold">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                autoComplete="email"
+                aria-invalid={!!errors.email}
+                className="h-11 border-2 border-border bg-white/50 backdrop-blur-sm focus:border-secondary focus:bg-white transition-all"
+                {...form.register("email")}
+              />
+              {errors.email && (
+                <p className="text-destructive text-xs font-medium">{errors.email.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="password" className="text-sm font-semibold">
+                Mật khẩu
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                aria-invalid={!!errors.password}
+                className="h-11 border-2 border-border bg-white/50 backdrop-blur-sm focus:border-secondary focus:bg-white transition-all"
+                {...form.register("password")}
+              />
+              {errors.password && (
+                <p className="text-destructive text-xs font-medium">{errors.password.message}</p>
+              )}
+            </div>
+            {errors.root && (
+              <p className="text-destructive text-xs font-medium bg-destructive/15 border border-destructive/30 p-3 rounded-lg">
+                {errors.root.message}
+              </p>
             )}
+            <Button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="w-full h-11 mt-2 font-semibold bg-gradient-to-r from-secondary to-accent hover:shadow-lg hover:shadow-secondary/30 transition-all text-white"
+            >
+              {isSubmitting && <Loader2 className="mr-2 animate-spin h-4 w-4" />}
+              {isSubmitting ? "Đang xử lý..." : "Đăng ký"}
+            </Button>
+          </form>
+          <div className="relative text-center text-xs text-muted-foreground after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+            <span className="bg-card relative z-10 px-3 font-semibold">hoặc</span>
           </div>
-          {errors.root && <p className="text-destructive text-sm">{errors.root.message}</p>}
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting && <Loader2 className="animate-spin" />}
-            Đăng ký
-          </Button>
-        </form>
-        <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-          <span className="bg-card text-muted-foreground relative z-10 px-2">hoặc</span>
-        </div>
-        <GoogleButton label="Đăng ký với Google" />
-        <p className="text-muted-foreground text-center text-sm">
-          Đã có tài khoản?{" "}
-          <Link href="/login" className="text-foreground underline underline-offset-4">
-            Đăng nhập
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+          <GoogleButton label="Đăng ký với Google" />
+          <p className="text-muted-foreground text-center text-sm">
+            Đã có tài khoản?{" "}
+            <Link
+              href="/login"
+              className="font-semibold text-secondary hover:text-accent transition-colors"
+            >
+              Đăng nhập
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
