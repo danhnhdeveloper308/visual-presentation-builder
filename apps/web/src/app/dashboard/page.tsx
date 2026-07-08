@@ -5,13 +5,7 @@ import { Loader2, LogOut, Presentation } from "lucide-react";
 import { useMe } from "@/hooks/queries/useMe";
 import { useLogout } from "@/hooks/mutations/useLogout";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ProjectGrid } from "@/components/dashboard/project-grid";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -44,19 +38,11 @@ export default function DashboardPage() {
         </Button>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Xin chào, {me.data?.name}</CardTitle>
-          <CardDescription>
-            {me.data?.email} — role: {me.data?.role}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            Danh sách project sẽ hiển thị ở đây (Phase 1 — Core Editor).
-          </p>
-        </CardContent>
-      </Card>
+      <p className="text-muted-foreground text-sm">
+        Xin chào, <span className="text-foreground font-medium">{me.data?.name}</span>
+      </p>
+
+      <ProjectGrid />
     </main>
   );
 }
