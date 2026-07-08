@@ -11,6 +11,7 @@
    - Việc liên quan **kiến trúc dữ liệu / Prisma schema / Project Model JSON / packages/shared** → đọc `docs/ARCHITECTURE.md`
    - Việc liên quan **NestJS / Auth / RBAC / Security** → đọc `docs/BACKEND.md`
    - Việc liên quan **Next.js / UI / State management / Form / Canvas / Drag-drop** → đọc `docs/FRONTEND.md`
+   - Việc liên quan **yêu cầu tính năng mới / phạm vi các phase còn lại (templates, themes, recycle bin, layout system, animation)** → đọc `docs/REQUIREMENTS.md` (bộ yêu cầu chốt 2026-07-08 + thiết kế đề xuất)
 5. Trước khi báo hoàn thành 1 task: chạy `pnpm typecheck` và `pnpm lint` cho phần đã sửa.
 
 ## 1. Tổng quan dự án
@@ -66,7 +67,7 @@
 /packages
   /shared           → @repo/shared: zod schemas + types + constants
 /docs
-  PROGRESS.md  ARCHITECTURE.md  BACKEND.md  FRONTEND.md
+  PROGRESS.md  REQUIREMENTS.md  ARCHITECTURE.md  BACKEND.md  FRONTEND.md
 /docker             → docker-compose.yml (Postgres local)
 ```
 

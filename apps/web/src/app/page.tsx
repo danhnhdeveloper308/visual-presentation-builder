@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Presentation, Sparkles, Zap, Layers, Share2, Palette, Rocket, Users, Lightbulb, Lock } from "lucide-react";
+import { Presentation, Sparkles, Zap, Layers, Share2, Palette } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
 export default function HomePage() {

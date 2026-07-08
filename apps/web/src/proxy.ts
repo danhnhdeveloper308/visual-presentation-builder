@@ -15,5 +15,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/editor/:path*"],
+  matcher: ["/dashboard/:path*", "/editor/:path*", "/templates/:path*"],
 };

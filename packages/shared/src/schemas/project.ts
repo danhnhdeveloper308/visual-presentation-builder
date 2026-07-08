@@ -4,6 +4,8 @@ import { presentationSchema } from "./presentation";
 
 export const createProjectSchema = z.object({
   title: z.string().min(1, "Tên project không được để trống").max(LIMITS.TITLE_MAX),
+  /** Tạo từ template: copy content của template public làm điểm xuất phát. */
+  templateId: z.string().optional(),
 });
 
 /**
@@ -18,8 +20,26 @@ export const saveProjectSchema = z.object({
 export const updateProjectMetaSchema = z.object({
   title: z.string().min(1).max(LIMITS.TITLE_MAX).optional(),
   status: z.enum(["draft", "published"]).optional(),
+  thumbnailUrl: z.string().url().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type SaveProjectInput = z.infer<typeof saveProjectSchema>;
 export type UpdateProjectMetaInput = z.infer<typeof updateProjectMetaSchema>;
+
+/** Response types (Date serialize thành string qua JSON). */
+export type ProjectSummary = {
+  id: string;
+  title: string;
+  thumbnailUrl: string | null;
+  status: "draft" | "published";
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProjectDetail = ProjectSummary & {
+  content: z.infer<typeof presentationSchema>;
+};
+
+export type SaveProjectResult = { revision: number };

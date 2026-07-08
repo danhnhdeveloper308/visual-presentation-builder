@@ -1,5 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Prisma } from '@prisma/client';
 import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, ROLES } from '@repo/shared';
+import { SEED_TEMPLATES } from './seed-templates';
+import { SEED_THEMES } from './seed-themes';
 
 /**
  * Seed roles + permissions mặc định. Idempotent — chạy lại không tạo trùng.
@@ -39,7 +41,42 @@ async function main() {
     }
   }
 
-  console.log('Seed hoàn tất: roles + permissions.');
+  // Templates hệ thống — idempotent theo title
+  for (const tpl of SEED_TEMPLATES) {
+    const existing = await prisma.template.findFirst({ where: { title: tpl.title } });
+    const data = {
+      title: tpl.title,
+      category: tpl.category,
+      content: tpl.content as unknown as Prisma.InputJsonValue,
+      isPublic: true,
+    };
+    if (existing) {
+      await prisma.template.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.template.create({ data });
+    }
+  }
+
+  // System themes — idempotent theo name
+  for (const th of SEED_THEMES) {
+    const existing = await prisma.theme.findFirst({
+      where: { name: th.name, isSystemTheme: true },
+    });
+    const data = {
+      name: th.name,
+      config: th.config as unknown as Prisma.InputJsonValue,
+      isSystemTheme: true,
+    };
+    if (existing) {
+      await prisma.theme.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.theme.create({ data });
+    }
+  }
+
+  console.log(
+    `Seed hoàn tất: roles + permissions + ${SEED_TEMPLATES.length} templates + ${SEED_THEMES.length} themes.`,
+  );
 }
 
 main()

@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold text-foreground mb-4">1. Giới thiệu</h2>
               <p>
-                Visual Presentation Builder ("chúng tôi", "chúng ta" hoặc "công ty") cam kết bảo vệ quyền riêng tư của bạn.
+                Visual Presentation Builder chúng tôi cam kết bảo vệ quyền riêng tư của bạn.
                 Chính sách bảo mật này giải thích cách chúng tôi thu thập, sử dụng, tiết lộ và bảo vệ thông tin của bạn.
               </p>
             </section>
