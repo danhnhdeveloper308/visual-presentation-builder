@@ -22,6 +22,7 @@ import { useCreateTheme } from "@/hooks/mutations/useCreateTheme";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { SkeletonCardGrid } from "@/components/ui/skeleton";
 import { ThemeEditorDialog } from "@/components/theme/theme-editor-dialog";
 
 type Tab = "system" | "mine";
@@ -229,9 +230,7 @@ export default function ThemesPage() {
         </div>
 
         {themes.isPending ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="text-primary size-8 animate-spin" />
-          </div>
+          <SkeletonCardGrid count={8} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-gray-300 bg-white/50 py-20">
             <div className="rounded-full bg-gray-100 p-3">
@@ -248,7 +247,7 @@ export default function ThemesPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {filtered.map((t) => (
               <ThemeCard key={t.id} theme={t} onEdit={setEditing} />
             ))}

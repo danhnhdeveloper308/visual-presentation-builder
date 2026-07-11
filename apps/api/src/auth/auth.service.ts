@@ -1,10 +1,13 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import {
   ROLES,
@@ -16,7 +19,13 @@ import {
 } from '@repo/shared';
 import type { User, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { Env } from '../config/env.validation';
+import { MailService } from '../mail/mail.service';
+import { buildResetPasswordEmail } from '../mail/templates';
 import { TokenService, REFRESH_TOKEN_TTL_MS } from './token.service';
+
+/** Token đặt lại mật khẩu có hiệu lực trong 1 giờ. */
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 export type AuthResult = {
   user: AuthUser;
@@ -38,9 +47,13 @@ const ACCOUNT_LOCKED = 'Tài khoản đã bị khóa — liên hệ quản trị
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: TokenService,
+    private readonly mail: MailService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async register(input: RegisterInput, meta: ClientMeta): Promise<AuthResult> {
@@ -171,6 +184,80 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException();
     return this.toAuthUser(user);
+  }
+
+  /* ---------- Quên / đặt lại mật khẩu ---------- */
+
+  /**
+   * Gửi email đặt lại mật khẩu. LUÔN trả về như nhau dù email có tồn tại hay không
+   * (chống dò email). Tài khoản bị khóa không gửi. Mỗi lần gọi vô hiệu hóa token cũ
+   * chưa dùng của user rồi tạo token mới (raw gửi qua email, chỉ lưu hash).
+   */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    // Không lộ thông tin: user không tồn tại / bị khóa → im lặng trả về success
+    if (!user || user.lockedAt) return;
+
+    // Vô hiệu token cũ chưa dùng (đánh dấu đã dùng) để chỉ 1 link còn hiệu lực
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const rawToken = this.tokens.generateResetToken();
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: this.tokens.hashToken(rawToken),
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      },
+    });
+
+    const frontend = this.config.get('FRONTEND_ORIGIN', { infer: true });
+    const resetUrl = `${frontend}/reset-password?token=${rawToken}`;
+    try {
+      const { subject, html, text } = buildResetPasswordEmail(user.name, resetUrl);
+      await this.mail.send({ to: user.email, toName: user.name, subject, html, text });
+    } catch (err) {
+      // Không ném ra ngoài (tránh lộ email tồn tại + tránh 500) — chỉ log để xử lý
+      this.logger.error(`Gửi email reset cho ${user.email} thất bại: ${String(err)}`);
+    }
+  }
+
+  /**
+   * Đặt lại mật khẩu bằng token từ email. Token hợp lệ = tồn tại, chưa dùng, chưa hết hạn.
+   * Thành công: đặt passwordHash mới, đánh dấu token đã dùng, THU HỒI mọi phiên đăng nhập
+   * của user (buộc đăng nhập lại bằng mật khẩu mới trên mọi thiết bị).
+   */
+  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+    const tokenHash = this.tokens.hashToken(rawToken);
+    const record = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new BadRequestException('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+    if (record.user.lockedAt) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED);
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: record.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+      // Thu hồi toàn bộ session — thiết bị khác văng ngay (AuthGuard check revoked mỗi request)
+      this.prisma.session.updateMany({
+        where: { userId: record.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   private async createSession(

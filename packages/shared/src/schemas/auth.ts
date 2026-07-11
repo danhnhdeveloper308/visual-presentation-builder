@@ -43,6 +43,17 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+/* ---------- Quên / đặt lại mật khẩu ---------- */
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Thiếu mã đặt lại"),
+  newPassword: passwordSchema,
+});
+
 /** 1 phiên đăng nhập đang hoạt động của user. */
 export type SessionDto = {
   id: string;
@@ -59,3 +70,5 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

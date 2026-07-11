@@ -26,6 +26,7 @@ import { useUpdateProjectMeta } from "@/hooks/mutations/useUpdateProjectMeta";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { SkeletonCardGrid } from "@/components/ui/skeleton";
 import { ProjectCardPreview } from "./project-card-preview";
 
 type SortMode = "updated" | "created" | "title";
@@ -200,9 +201,13 @@ export function ProjectGrid() {
 
   if (projects.isPending) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="text-primary size-8 animate-spin" />
-      </div>
+      <section className="flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <div className="h-6 w-40 animate-pulse rounded-md bg-gray-200/70" />
+          <div className="h-9 w-28 animate-pulse rounded-full bg-gray-200/70" />
+        </div>
+        <SkeletonCardGrid count={10} />
+      </section>
     );
   }
 
@@ -243,15 +248,12 @@ export function ProjectGrid() {
             </select>
           </div>
           <Button
+            variant="gradient"
             onClick={handleCreate}
-            disabled={createProject.isPending}
-            className="from-primary to-secondary hover:shadow-primary/30 rounded-full bg-linear-to-r transition-all hover:shadow-lg"
+            loading={createProject.isPending}
+            className="rounded-full"
           >
-            {createProject.isPending ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <Plus size={18} />
-            )}
+            {!createProject.isPending && <Plus size={18} />}
             Tạo mới
           </Button>
         </div>
@@ -269,11 +271,8 @@ export function ProjectGrid() {
               Bắt đầu bằng cách tạo một project mới hoặc chọn từ template
             </p>
             <div className="flex justify-center gap-2">
-              <Button
-                onClick={handleCreate}
-                className="from-primary to-secondary bg-linear-to-r text-white"
-              >
-                <Plus size={18} /> Tạo Project Đầu Tiên
+              <Button variant="gradient" onClick={handleCreate} loading={createProject.isPending}>
+                {!createProject.isPending && <Plus size={18} />} Tạo Project Đầu Tiên
               </Button>
               <Link href="/templates" className={buttonVariants({ variant: "outline" })}>
                 <LayoutTemplate size={18} /> Xem template
@@ -289,7 +288,7 @@ export function ProjectGrid() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {visible.map((p) => (
             <ProjectCard key={p.id} project={p} />
           ))}

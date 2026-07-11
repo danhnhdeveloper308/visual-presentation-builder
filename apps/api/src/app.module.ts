@@ -13,6 +13,7 @@ import { AssetsModule } from './assets/assets.module';
 import { TemplatesModule } from './templates/templates.module';
 import { ThemesModule } from './themes/themes.module';
 import { AdminModule } from './admin/admin.module';
+import { MailModule } from './mail/mail.module';
 import { OriginGuard } from './common/guards/origin.guard';
 import { AuthGuard } from './rbac/guards/auth.guard';
 import { PermissionsGuard } from './rbac/guards/permissions.guard';
@@ -28,6 +29,7 @@ import { PermissionsGuard } from './rbac/guards/permissions.guard';
     // Cron xóa vĩnh viễn Recycle Bin quá hạn (ProjectsService.purgeExpiredTrash)
     ScheduleModule.forRoot(),
     PrismaModule,
+    MailModule,
     AuthModule,
     UsersModule,
     ProjectsModule,

@@ -46,7 +46,7 @@ export function SharedGrid() {
         <h3 className="text-xl font-bold text-gray-900">Được chia sẻ với tôi</h3>
         <span className="text-sm text-gray-500">{projects.length}</span>
       </div>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {projects.map((p) => (
           <SharedCard key={p.id} project={p} />
         ))}

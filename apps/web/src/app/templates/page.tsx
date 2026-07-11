@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SkeletonCardGrid } from "@/components/ui/skeleton";
 import { SlidePreview } from "@/components/template/slide-preview";
 import { CATEGORY_COLORS, CATEGORY_LABELS, DEFAULT_CATEGORY_COLOR } from "@/components/template/category-meta";
 import { TemplateRenameDialog } from "@/components/template/template-rename-dialog";
@@ -227,9 +228,7 @@ export default function TemplatesPage() {
 
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
         {templates.isPending ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="text-primary size-8 animate-spin" />
-          </div>
+          <SkeletonCardGrid count={10} />
         ) : filteredTemplates.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-gray-300 bg-white/50 py-20">
             <Search className="size-12 text-gray-400" />

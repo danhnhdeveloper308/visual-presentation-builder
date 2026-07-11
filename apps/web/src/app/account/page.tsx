@@ -24,7 +24,9 @@ import {
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { PageLoader } from "@/components/ui/page-loader";
 
 /** Đoán nhanh trình duyệt + hệ điều hành từ user-agent — chỉ để hiển thị. */
 function describeAgent(ua: string | null): string {
@@ -214,16 +216,16 @@ function PasswordSection() {
         {hasPassword && (
           <div className="flex flex-col gap-1.5">
             <Label className="text-muted-foreground text-xs">Mật khẩu hiện tại</Label>
-            <Input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <PasswordInput required value={current} onChange={(e) => setCurrent(e.target.value)} />
           </div>
         )}
         <div className="flex flex-col gap-1.5">
           <Label className="text-muted-foreground text-xs">Mật khẩu mới (≥8 ký tự, có chữ và số)</Label>
-          <Input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
+          <PasswordInput required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-muted-foreground text-xs">Nhập lại mật khẩu mới</Label>
-          <Input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          <PasswordInput required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
           <Button type="submit" size="sm" disabled={changePassword.isPending}>
@@ -303,13 +305,7 @@ function SessionsSection() {
 export default function AccountPage() {
   const me = useMe();
 
-  if (me.isPending) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-linear-to-br from-white via-blue-50 to-indigo-100">
-        <Loader2 className="text-primary size-8 animate-spin" />
-      </main>
-    );
-  }
+  if (me.isPending) return <PageLoader label="Đang tải tài khoản..." />;
 
   return (
     <main className="min-h-dvh bg-linear-to-br from-white via-blue-50 to-indigo-100">

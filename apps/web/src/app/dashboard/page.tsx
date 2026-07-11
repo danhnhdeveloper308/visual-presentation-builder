@@ -20,6 +20,7 @@ import { formatBytes } from "@/lib/format";
 import { useMe } from "@/hooks/queries/useMe";
 import { useStorageUsage } from "@/hooks/queries/useStorageUsage";
 import { useLogout } from "@/hooks/mutations/useLogout";
+import { PageLoader } from "@/components/ui/page-loader";
 import { ProjectGrid } from "@/components/dashboard/project-grid";
 import { SharedGrid } from "@/components/dashboard/shared-grid";
 
@@ -155,24 +156,20 @@ function ProfileMenu() {
 export default function DashboardPage() {
   const me = useMe();
 
-  if (me.isPending) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-linear-to-br from-white via-blue-50 to-indigo-100">
-        <Loader2 className="text-primary size-8 animate-spin" />
-      </main>
-    );
-  }
+  if (me.isPending) return <PageLoader label="Đang tải dashboard..." />;
 
   return (
     <main className="min-h-dvh bg-linear-to-br from-white via-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3 lg:px-8">
+      <header className="sticky top-0 z-40 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1600px] items-center gap-6 px-6 py-3 lg:px-10">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="from-primary to-secondary rounded-lg bg-linear-to-br p-2">
+            <div className="from-primary to-secondary rounded-xl bg-linear-to-br p-2 shadow-md shadow-primary/30">
               <Presentation className="size-5 text-white" />
             </div>
-            <span className="text-lg font-bold">Visual Builder</span>
+            <span className="from-primary to-secondary bg-linear-to-r bg-clip-text text-lg font-bold text-transparent">
+              Visual Builder
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
@@ -192,28 +189,36 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-8 lg:px-8">
-        {/* Welcome */}
-        <div className="from-primary/90 to-secondary/90 relative overflow-hidden rounded-3xl bg-linear-to-r px-8 py-8 text-white shadow-lg">
-          <h2 className="text-2xl font-bold sm:text-3xl">Xin chào, {me.data?.name}! 👋</h2>
-          <p className="mt-1 max-w-xl text-sm text-white/85 sm:text-base">
-            Sẵn sàng tạo những slide tuyệt vời? Tiếp tục một project bên dưới hoặc bắt đầu từ
-            template.
-          </p>
-          {/* Nav nhanh cho màn hình nhỏ (nav header ẩn) */}
-          <div className="mt-4 flex flex-wrap gap-2 md:hidden">
-            {NAV_LINKS.map(({ href, label, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur hover:bg-white/25"
-              >
-                <Icon className="size-3.5" /> {label}
-              </Link>
-            ))}
+      {/* Main Content — rộng gần full màn hình để không bỏ trống hai bên trên màn lớn */}
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-10 px-6 py-8 lg:px-10">
+        {/* Welcome hero + quick actions */}
+        <div className="from-primary via-primary to-secondary relative overflow-hidden rounded-3xl bg-linear-to-br px-8 py-9 text-white shadow-xl shadow-primary/20">
+          <div className="pointer-events-none absolute inset-0 opacity-30">
+            <div className="animate-blob absolute -top-16 right-1/4 size-56 rounded-full bg-white/20 blur-3xl" />
+            <div className="animate-blob animation-delay-2000 absolute -bottom-20 right-10 size-64 rounded-full bg-accent/30 blur-3xl" />
           </div>
-          <Presentation className="pointer-events-none absolute -right-6 -bottom-8 size-40 text-white/10" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold sm:text-3xl">Xin chào, {me.data?.name}! 👋</h2>
+              <p className="mt-1.5 max-w-xl text-sm text-white/85 sm:text-base">
+                Sẵn sàng tạo những slide tuyệt vời? Tiếp tục một project bên dưới hoặc bắt đầu từ
+                template.
+              </p>
+            </div>
+            {/* Quick actions */}
+            <div className="grid grid-cols-3 gap-3">
+              {NAV_LINKS.map(({ href, label, Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl bg-white/15 px-5 py-3 text-xs font-medium backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/25"
+                >
+                  <Icon className="size-5" /> {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <Presentation className="pointer-events-none absolute -right-8 -bottom-10 size-44 text-white/10" />
         </div>
 
         <ProjectGrid />

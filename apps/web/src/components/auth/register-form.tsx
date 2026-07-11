@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterInput } from "@repo/shared";
-import { Loader2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { useRegister } from "@/hooks/mutations/useRegister";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -45,13 +46,14 @@ export function RegisterForm() {
   return (
     <div className="w-full max-w-md">
       <Card className="border-0 shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-accent/5 rounded-lg pointer-events-none" />
-        <CardHeader className="relative pb-8 pt-10 px-8">
-          <div className="mb-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
-              Đăng ký
-            </CardTitle>
+        <div className="absolute inset-0 bg-linear-to-br from-secondary/5 via-transparent to-accent/5 rounded-lg pointer-events-none" />
+        <CardHeader className="relative px-8 pt-10 pb-8">
+          <div className="from-secondary to-accent mb-4 flex size-12 items-center justify-center rounded-2xl bg-linear-to-br shadow-lg shadow-secondary/30">
+            <Sparkles className="size-6 text-white" />
           </div>
+          <CardTitle className="from-secondary to-accent bg-linear-to-r bg-clip-text text-3xl font-bold text-transparent">
+            Đăng ký
+          </CardTitle>
           <CardDescription className="text-base">
             Bắt đầu tạo slide chuyên nghiệp ngay
           </CardDescription>
@@ -95,9 +97,8 @@ export function RegisterForm() {
               <Label htmlFor="password" className="text-sm font-semibold">
                 Mật khẩu
               </Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 aria-invalid={!!errors.password}
@@ -113,12 +114,12 @@ export function RegisterForm() {
                 {errors.root.message}
               </p>
             )}
-            <Button 
-              type="submit" 
-              disabled={isSubmitting} 
-              className="w-full h-11 mt-2 font-semibold bg-gradient-to-r from-secondary to-accent hover:shadow-lg hover:shadow-secondary/30 transition-all text-white"
+            <Button
+              type="submit"
+              size="lg"
+              loading={isSubmitting}
+              className="from-secondary to-accent hover:shadow-secondary/30 mt-2 w-full bg-linear-to-r font-semibold text-white shadow-sm hover:shadow-lg"
             >
-              {isSubmitting && <Loader2 className="mr-2 animate-spin h-4 w-4" />}
               {isSubmitting ? "Đang xử lý..." : "Đăng ký"}
             </Button>
           </form>

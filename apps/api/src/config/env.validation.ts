@@ -26,6 +26,12 @@ const envSchema = z.object({
   CLOUDFLARE_R2_BUCKET_NAME: z.string().min(1),
   CLOUDFLARE_R2_S3_URL: z.string().url(),
   CLOUDFLARE_R2_PUBLIC_URL: z.string().url(),
+
+  // Email (Brevo) — gửi mail đặt lại mật khẩu. Thiếu API key: chạy chế độ dev
+  // (log link ra console thay vì gửi thật). Sender phải là email đã verify trên Brevo.
+  BREVO_API_KEY: z.string().optional(),
+  BREVO_SENDER_EMAIL: z.string().email().default('danhnh.developer@gmail.com'),
+  BREVO_SENDER_NAME: z.string().default('Visual Builder'),
 });
 
 export type Env = z.infer<typeof envSchema>;

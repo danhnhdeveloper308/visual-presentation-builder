@@ -28,6 +28,20 @@ model User {
   assets            Asset[]
   collaborations    ProjectCollaborator[]
   templateFavorites TemplateFavorite[]
+  passwordResets    PasswordResetToken[]
+}
+
+// Quên/đặt lại mật khẩu: chỉ lưu HASH của token (giống refresh token), gửi raw qua email.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Role {

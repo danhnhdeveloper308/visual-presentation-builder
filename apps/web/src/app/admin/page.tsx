@@ -20,6 +20,8 @@ import { useSetUserLock, useSetUserQuota } from "@/hooks/mutations/useAdminUserM
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { PageLoader } from "@/components/ui/page-loader";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MB = 1024 * 1024;
 
@@ -211,13 +213,7 @@ export default function AdminPage() {
   const me = useMe();
   const users = useAdminUsers();
 
-  if (me.isPending) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <Loader2 className="text-primary size-8 animate-spin" />
-      </main>
-    );
-  }
+  if (me.isPending) return <PageLoader label="Đang tải trang quản trị..." />;
 
   // Proxy chỉ check cookie — chặn thêm ở FE cho user thường (BE vẫn là chốt cuối 403)
   if (me.data && me.data.role !== "admin") {
@@ -251,8 +247,17 @@ export default function AdminPage() {
 
       <div className="mx-auto max-w-6xl px-6 py-8">
         {users.isPending ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="text-primary size-8 animate-spin" />
+          <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="size-9 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-3 w-56" />
+                </div>
+                <Skeleton className="h-8 w-24 rounded-md" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">

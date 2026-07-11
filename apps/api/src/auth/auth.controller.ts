@@ -15,11 +15,15 @@ import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resetPasswordSchema,
   type AuthUser,
+  type ForgotPasswordInput,
   type LoginInput,
   type RegisterInput,
+  type ResetPasswordInput,
 } from '@repo/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { Public } from '../rbac/decorators/public.decorator';
@@ -114,6 +118,29 @@ export class AuthController {
     return this.auth.me(user.id);
   }
 
+  /* ---------- Quên / đặt lại mật khẩu ---------- */
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body(new ZodValidationPipe(forgotPasswordSchema)) body: ForgotPasswordInput,
+  ): Promise<{ success: true }> {
+    await this.auth.forgotPassword(body.email);
+    // Luôn trả success như nhau — không lộ email có tồn tại hay không
+    return { success: true };
+  }
+
+  @Public()
+  @Throttle(AUTH_THROTTLE)
+  @Post('reset-password')
+  async resetPassword(
+    @Body(new ZodValidationPipe(resetPasswordSchema)) body: ResetPasswordInput,
+  ): Promise<{ success: true }> {
+    await this.auth.resetPassword(body.token, body.newPassword);
+    return { success: true };
+  }
+
   /* ---------- Quản lý phiên đăng nhập (trang tài khoản) ---------- */
 
   @Get('sessions')
@@ -145,8 +172,19 @@ export class AuthController {
   @Get('google/callback')
   async googleCallback(@Req() req: Request, @Res() res: Response): Promise<void> {
     const profile = req.user as GoogleProfile;
-    const result = await this.auth.googleLogin(profile, this.clientMeta(req));
+    const frontend = this.config.get('FRONTEND_ORIGIN', { infer: true }) as string;
+    let result: AuthResult;
+    try {
+      result = await this.auth.googleLogin(profile, this.clientMeta(req));
+    } catch (err) {
+      // Tài khoản bị khóa (401) → đưa về trang thông báo thay vì trả JSON trần
+      if (err instanceof UnauthorizedException) {
+        res.redirect(`${frontend}/locked`);
+        return;
+      }
+      throw err;
+    }
     this.applyCookies(res, result);
-    res.redirect(`${this.config.get('FRONTEND_ORIGIN', { infer: true })}/dashboard`);
+    res.redirect(`${frontend}/dashboard`);
   }
 }

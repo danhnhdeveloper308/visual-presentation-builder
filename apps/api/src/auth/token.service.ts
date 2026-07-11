@@ -19,6 +19,11 @@ export class TokenService {
     return randomBytes(48).toString('hex');
   }
 
+  /** Token đặt lại mật khẩu — random opaque, gửi raw qua email, lưu HASH trong DB. */
+  generateResetToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
   hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }

@@ -26,7 +26,13 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const REFRESH_PATH = "/auth/refresh";
 /** Các path không được auto-refresh khi 401 (tránh vòng lặp). */
-const NO_REFRESH_PATHS = ["/auth/login", "/auth/register", REFRESH_PATH];
+const NO_REFRESH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  REFRESH_PATH,
+];
 
 type UnauthorizedHandler = () => void;
 let onUnauthorized: UnauthorizedHandler | null = null;
@@ -101,8 +107,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   let res = await doFetch();
 
+  // Route auth (login/register/refresh): 401 là lỗi NGHIỆP VỤ (sai mật khẩu, bị khóa...)
+  // → ném ApiError cho form hiển thị inline, KHÔNG refresh + KHÔNG gọi onUnauthorized
+  // (trước đây onUnauthorized đá về /login làm trang reload, user không thấy lỗi gì).
+  const isAuthPath = NO_REFRESH_PATHS.some((p) => path.startsWith(p));
+
   // Auto-refresh đúng 1 lần khi 401 (trừ các route auth)
-  if (res.status === 401 && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {
+  if (res.status === 401 && !isAuthPath) {
     const refreshed = await refreshSession();
     if (refreshed) {
       res = await doFetch();
@@ -113,7 +124,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!res.ok) {
-    if (res.status === 401) onUnauthorized?.();
+    if (res.status === 401 && !isAuthPath) onUnauthorized?.();
     throw toError(res.status, await parseBody(res));
   }
 

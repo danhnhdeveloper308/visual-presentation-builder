@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Loader2, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { SkeletonCardGrid } from "@/components/ui/skeleton";
 import { LIMITS, type TrashProjectSummary } from "@repo/shared";
 import { useTrashProjects } from "@/hooks/queries/useTrashProjects";
 import { useRestoreProject } from "@/hooks/mutations/useRestoreProject";
@@ -174,9 +175,7 @@ export default function TrashPage() {
         </div>
 
         {trash.isPending ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="text-primary size-8 animate-spin" />
-          </div>
+          <SkeletonCardGrid count={8} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-gray-300 bg-white/50 py-20">
             <div className="rounded-full bg-gray-100 p-3">
@@ -194,7 +193,7 @@ export default function TrashPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {filtered.map((p) => (
               <TrashCard key={p.id} project={p} />
             ))}
