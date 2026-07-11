@@ -7,8 +7,9 @@ import {
 } from '@nestjs/common';
 import type { Asset } from '@prisma/client';
 import {
-  LIMITS,
+  maxBytesForMime,
   type AssetDto,
+  type StorageUsage,
   type ConfirmAssetInput,
   type PresignAssetInput,
   type PresignAssetResult,
@@ -22,6 +23,12 @@ const MIME_EXT: Record<string, string> = {
   'image/webp': 'webp',
   'image/svg+xml': 'svg',
   'image/gif': 'gif',
+  // media (video/audio) — element media
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'audio/ogg': 'ogg',
 };
 
 @Injectable()
@@ -31,9 +38,34 @@ export class AssetsService {
     private readonly r2: R2Service,
   ) {}
 
+  /** Dung lượng đã dùng (tổng sizeBytes asset) + quota của user — hiển thị và enforce. */
+  async usage(ownerId: string): Promise<StorageUsage> {
+    const [agg, user] = await Promise.all([
+      this.prisma.asset.aggregate({ where: { ownerId }, _sum: { sizeBytes: true } }),
+      this.prisma.user.findUnique({ where: { id: ownerId }, select: { storageQuotaBytes: true } }),
+    ]);
+    return {
+      usedBytes: agg._sum.sizeBytes ?? 0,
+      quotaBytes: user?.storageQuotaBytes ?? 0,
+    };
+  }
+
+  private async assertQuota(ownerId: string, incomingBytes: number): Promise<void> {
+    const { usedBytes, quotaBytes } = await this.usage(ownerId);
+    if (usedBytes + incomingBytes > quotaBytes) {
+      const mb = (n: number) => Math.round(n / 1024 / 1024);
+      throw new BadRequestException(
+        `Vượt dung lượng lưu trữ (đã dùng ${mb(usedBytes)}MB / ${mb(quotaBytes)}MB) — xóa bớt asset hoặc liên hệ admin tăng quota`,
+      );
+    }
+  }
+
   async presign(ownerId: string, input: PresignAssetInput): Promise<PresignAssetResult> {
     const ext = MIME_EXT[input.mimeType];
     if (!ext) throw new BadRequestException('Định dạng file không được hỗ trợ');
+
+    // Thumbnail ghi đè key cố định, dung lượng nhỏ — không tính quota để không chặn luồng Lưu
+    if (input.purpose !== 'thumbnail') await this.assertQuota(ownerId, input.sizeBytes);
 
     let key: string;
     if (input.purpose === 'thumbnail') {
@@ -59,9 +91,21 @@ export class AssetsService {
     // Verify object thật sự tồn tại trên R2 + lấy size/mime thật (không tin client)
     const head = await this.r2.head(input.key);
     if (!head) throw new BadRequestException('File chưa được upload');
-    if (head.sizeBytes > LIMITS.ASSET_MAX_BYTES) {
+    if (head.sizeBytes > maxBytesForMime(head.mimeType)) {
       await this.r2.delete(input.key);
       throw new BadRequestException('File vượt quá giới hạn cho phép');
+    }
+
+    // Re-check quota theo size THẬT (client có thể khai gian ở presign);
+    // ghi đè cùng key thì trừ đi size bản cũ trước khi cộng bản mới.
+    // Thumbnail miễn quota (đồng bộ với presign) — không chặn luồng Lưu.
+    if (!input.key.includes('/thumbnails/')) {
+      const existing = await this.prisma.asset.findUnique({ where: { key: input.key } });
+      const { usedBytes, quotaBytes } = await this.usage(ownerId);
+      if (usedBytes - (existing?.sizeBytes ?? 0) + head.sizeBytes > quotaBytes) {
+        await this.r2.delete(input.key);
+        throw new BadRequestException('Vượt dung lượng lưu trữ — file đã bị hủy');
+      }
     }
 
     // Upsert theo key — thumbnail ghi đè cùng key nhiều lần, cập nhật metadata mới

@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 export function useSaveProject(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { silentError: true }, // lỗi lưu hiển thị qua SaveIndicator/banner 409
     mutationFn: (input: SaveProjectInput) =>
       api.put<SaveProjectResult>(`/projects/${projectId}/content`, input),
     onSuccess: (result, variables) => {

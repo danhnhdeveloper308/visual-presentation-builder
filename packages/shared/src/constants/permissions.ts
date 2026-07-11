@@ -10,13 +10,25 @@ export const PERMISSIONS = {
   ASSET_CREATE: "asset:create",
   ASSET_DELETE: "asset:delete",
   TEMPLATE_READ: "template:read",
-  TEMPLATE_MANAGE: "template:manage", // tạo/sửa/publish template hệ thống
+  TEMPLATE_CREATE: "template:create",
+  TEMPLATE_UPDATE: "template:update",
+  TEMPLATE_DELETE: "template:delete",
+  TEMPLATE_MANAGE: "template:manage", // dành riêng cho quản trị template HỆ THỐNG (chưa dùng, để mở rộng sau)
   THEME_READ: "theme:read",
-  THEME_MANAGE: "theme:manage",
+  THEME_CREATE: "theme:create",
+  THEME_UPDATE: "theme:update",
+  THEME_DELETE: "theme:delete",
+  THEME_MANAGE: "theme:manage", // dành riêng cho quản trị theme HỆ THỐNG (chưa dùng, để mở rộng sau)
   USER_MANAGE: "user:manage", // admin quản lý user
 } as const;
 
 export type PermissionAction = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+
+/**
+ * SUPERADMIN: tự gán role admin khi đăng nhập/đăng ký, không thể bị khóa/hạ quyền
+ * từ trang quản trị (chốt theo yêu cầu user 2026-07-11).
+ */
+export const SUPERADMIN_EMAIL = "danhnh.developer@gmail.com";
 
 export const ALL_PERMISSIONS: PermissionAction[] = Object.values(PERMISSIONS);
 
@@ -38,6 +50,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, PermissionAction[]> = {
     PERMISSIONS.ASSET_CREATE,
     PERMISSIONS.ASSET_DELETE,
     PERMISSIONS.TEMPLATE_READ,
+    PERMISSIONS.TEMPLATE_CREATE,
+    PERMISSIONS.TEMPLATE_UPDATE,
+    PERMISSIONS.TEMPLATE_DELETE,
     PERMISSIONS.THEME_READ,
+    PERMISSIONS.THEME_CREATE,
+    PERMISSIONS.THEME_UPDATE,
+    PERMISSIONS.THEME_DELETE,
   ],
 };

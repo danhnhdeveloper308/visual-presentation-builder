@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Req,
   Res,
@@ -110,6 +112,25 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: RequestUser): Promise<AuthUser> {
     return this.auth.me(user.id);
+  }
+
+  /* ---------- Quản lý phiên đăng nhập (trang tài khoản) ---------- */
+
+  @Get('sessions')
+  listSessions(@CurrentUser() user: RequestUser) {
+    return this.auth.listSessions(user.id, user.sessionId);
+  }
+
+  @Post('sessions/revoke-others')
+  async revokeOtherSessions(@CurrentUser() user: RequestUser) {
+    const revoked = await this.auth.revokeOtherSessions(user.id, user.sessionId);
+    return { revoked };
+  }
+
+  @Delete('sessions/:id')
+  async revokeSession(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    await this.auth.revokeSession(user.id, id);
+    return { success: true };
   }
 
   @Public()

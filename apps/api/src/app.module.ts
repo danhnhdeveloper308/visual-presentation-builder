@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthController } from './health/health.controller';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { ProjectsModule } from './projects/projects.module';
 import { AssetsModule } from './assets/assets.module';
 import { TemplatesModule } from './templates/templates.module';
 import { ThemesModule } from './themes/themes.module';
+import { AdminModule } from './admin/admin.module';
 import { OriginGuard } from './common/guards/origin.guard';
 import { AuthGuard } from './rbac/guards/auth.guard';
 import { PermissionsGuard } from './rbac/guards/permissions.guard';
@@ -22,12 +25,16 @@ import { PermissionsGuard } from './rbac/guards/permissions.guard';
     }),
     // Rate limit mặc định toàn app — route auth có @Throttle chặt hơn
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 100 }] }),
+    // Cron xóa vĩnh viễn Recycle Bin quá hạn (ProjectsService.purgeExpiredTrash)
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
+    UsersModule,
     ProjectsModule,
     AssetsModule,
     TemplatesModule,
     ThemesModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

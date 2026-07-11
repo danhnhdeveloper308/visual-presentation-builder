@@ -1,8 +1,13 @@
 import Link from "next/link";
-import { Presentation, Sparkles, Zap, Layers, Share2, Palette } from "lucide-react";
+import { cookies } from "next/headers";
+import { Presentation, Sparkles, Zap, Layers, Share2, Palette, LayoutDashboard } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { LogoutButton } from "@/components/auth/logout-button";
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Check nhanh như proxy.ts: có cookie access_token = đang có session (xác thực thật vẫn ở BE)
+  const hasSession = (await cookies()).has("access_token");
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Header */}
@@ -17,12 +22,27 @@ export default function HomePage() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Đăng nhập
-            </Link>
-            <Link href="/register" className={buttonVariants({ size: "sm" })}>
-              Bắt đầu miễn phí
-            </Link>
+            {hasSession ? (
+              <>
+                <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
+                  <LayoutDashboard className="size-4" />
+                  Vào Dashboard
+                </Link>
+                <LogoutButton />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  Đăng nhập
+                </Link>
+                <Link href="/register" className={buttonVariants({ size: "sm" })}>
+                  Bắt đầu miễn phí
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

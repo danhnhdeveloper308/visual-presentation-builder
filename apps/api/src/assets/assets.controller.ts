@@ -33,6 +33,11 @@ export class AssetsController {
     return this.assets.confirm(user.id, body);
   }
 
+  @Get('usage')
+  usage(@CurrentUser() user: RequestUser) {
+    return this.assets.usage(user.id);
+  }
+
   @Get()
   list(@CurrentUser() user: RequestUser) {
     return this.assets.list(user.id);

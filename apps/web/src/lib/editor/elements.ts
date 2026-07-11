@@ -1,9 +1,14 @@
 import type {
+  ChartElement,
+  ChartType,
   IconElement,
   ImageElement,
+  MediaElement,
+  MediaKind,
   Position,
   ShapeElement,
   SlideElement,
+  TableElement,
   TextElement,
 } from "@repo/shared";
 
@@ -76,6 +81,115 @@ export function newIconElement(
     rotation: 0,
     zIndex: nextZIndex(elements),
     props: { name, color: "#111827" },
+  };
+}
+
+export function newTableElement(elements: SlideElement[], position = { x: 240, y: 200 }): TableElement {
+  return {
+    id: crypto.randomUUID(),
+    type: "table",
+    position,
+    size: { width: 720, height: 320 },
+    rotation: 0,
+    zIndex: nextZIndex(elements),
+    props: {
+      rows: [
+        ["Cột 1", "Cột 2", "Cột 3"],
+        ["Dữ liệu", "Dữ liệu", "Dữ liệu"],
+        ["Dữ liệu", "Dữ liệu", "Dữ liệu"],
+        ["Dữ liệu", "Dữ liệu", "Dữ liệu"],
+      ],
+      headerRow: true,
+    },
+  };
+}
+
+/** Dữ liệu mẫu khi chèn chart mới — đổi trong Inspector. */
+export function defaultChartProps(chartType: ChartType): ChartElement["props"] {
+  const labels = ["T1", "T2", "T3", "T4"];
+  switch (chartType) {
+    case "bar":
+      return {
+        chartType,
+        labels,
+        series: [
+          { name: "Chuỗi A", values: [42, 68, 55, 90] },
+          { name: "Chuỗi B", values: [30, 45, 62, 58] },
+        ],
+        showLegend: true,
+      };
+    case "line":
+      return {
+        chartType,
+        labels,
+        series: [{ name: "Xu hướng", values: [24, 52, 41, 88] }],
+        showLegend: false,
+        smooth: true,
+      };
+    case "area":
+      return {
+        chartType,
+        labels,
+        series: [{ name: "Tăng trưởng", values: [18, 34, 56, 92] }],
+        showLegend: false,
+        smooth: true,
+      };
+    case "pie":
+      return {
+        chartType,
+        slices: [
+          { label: "Nhóm A", value: 45 },
+          { label: "Nhóm B", value: 30 },
+          { label: "Nhóm C", value: 25 },
+        ],
+        showLegend: true,
+        showValues: true,
+      };
+    case "donut":
+      return {
+        chartType,
+        slices: [
+          { label: "Hoàn thành", value: 68 },
+          { label: "Đang làm", value: 22 },
+          { label: "Chưa bắt đầu", value: 10 },
+        ],
+        showLegend: true,
+        showValues: true,
+      };
+  }
+}
+
+export function newChartElement(
+  elements: SlideElement[],
+  chartType: ChartType,
+  position = { x: 320, y: 160 },
+): ChartElement {
+  return {
+    id: crypto.randomUUID(),
+    type: "chart",
+    position,
+    size: { width: 640, height: 400 },
+    rotation: 0,
+    zIndex: nextZIndex(elements),
+    props: defaultChartProps(chartType),
+  };
+}
+
+/** Media placeholder — chọn nguồn (URL/upload) ở Inspector sau khi chèn. */
+export function newMediaElement(
+  elements: SlideElement[],
+  kind: MediaKind,
+  position = { x: 320, y: 180 },
+): MediaElement {
+  return {
+    id: crypto.randomUUID(),
+    type: "media",
+    position,
+    // 16:9 cho video/embed; audio là thanh ngang thấp
+    size: kind === "audio" ? { width: 560, height: 72 } : { width: 640, height: 360 },
+    rotation: 0,
+    zIndex: nextZIndex(elements),
+    props: { kind, url: "", controls: true },
   };
 }
 

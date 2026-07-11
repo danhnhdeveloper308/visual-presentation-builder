@@ -267,7 +267,15 @@ export const PROCESS_LAYOUTS: LayoutDef[] = [
 /* ============================== 10. Diagram (10) ============================== */
 
 /** Ô hộp nhỏ có chữ căn giữa — dùng cho sơ đồ. */
-function node(x: number, y: number, w: number, h: number, label: string, fill = C.accentSoft, color = C.accent) {
+function node(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label: string,
+  fill: string = C.accentSoft,
+  color: string = C.accent,
+) {
   return [
     card(x, y, w, h, { fill, borderRadius: 10 }),
     text(x + 8, y + (h - 26) / 2, w - 16, 28, label, { fontSize: 15, fontWeight: 700, color, align: "center" }),

@@ -1,9 +1,13 @@
 import type {
+  ChartElement,
+  ChartProps,
   IconElement,
+  ImageElement,
   ShapeElement,
   ShapeKind,
   Slide,
   SlideElement,
+  TableElement,
   TextElement,
 } from "@repo/shared";
 
@@ -180,21 +184,74 @@ export function icon(
   };
 }
 
-/** Placeholder ảnh: khối xám bo góc + icon ảnh ở giữa (thay bằng ảnh thật sau khi áp). */
+/**
+ * Placeholder ảnh = image element THẬT với url rỗng (chưa upload). Trên canvas nó
+ * hiện khung "Nhấn đúp để tải ảnh" → tải ảnh thật lên R2. `noIcon`/`fill` giữ để
+ * tương thích call-site cũ (không còn tác dụng render).
+ */
 export function imagePh(
   x: number,
   y: number,
   w: number,
   h: number,
   opts: { radius?: number; circle?: boolean; noIcon?: boolean; fill?: string } & El = {},
-): SlideElement[] {
-  const el = { rotation: opts.rotation, opacity: opts.opacity };
-  const box = opts.circle
-    ? shape("circle", x, y, w, h, { fill: opts.fill ?? C.ph }, el)
-    : shape("rounded-rect", x, y, w, h, { fill: opts.fill ?? C.ph, borderRadius: opts.radius ?? 12 }, el);
-  if (opts.noIcon) return [box];
-  const s = Math.round(Math.min(w, h) * 0.28);
-  return [box, icon("image", x + (w - s) / 2, y + (h - s) / 2, s, C.muted, el)];
+): ImageElement[] {
+  const borderRadius = opts.circle ? Math.round(Math.min(w, h) / 2) : opts.radius ?? 12;
+  return [
+    {
+      id: "",
+      type: "image",
+      position: { x, y },
+      size: { width: w, height: h },
+      rotation: opts.rotation ?? 0,
+      zIndex: 0,
+      opacity: opts.opacity,
+      props: { assetId: "", url: "", objectFit: "cover", borderRadius },
+    },
+  ];
+}
+
+/** Element bảng thật (Phase 2c) — `rows[0]` là header trừ khi headerRow=false. */
+export function table(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rows: string[][],
+  props: Partial<Omit<TableElement["props"], "rows">> = {},
+  el: El = {},
+): TableElement {
+  return {
+    id: "",
+    type: "table",
+    position: { x, y },
+    size: { width: w, height: h },
+    rotation: el.rotation ?? 0,
+    zIndex: 0,
+    opacity: el.opacity,
+    props: { rows, headerRow: true, ...props },
+  };
+}
+
+/** Element chart thật (Phase 2c) — props là discriminated union theo chartType. */
+export function chart(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  props: ChartProps,
+  el: El = {},
+): ChartElement {
+  return {
+    id: "",
+    type: "chart",
+    position: { x, y },
+    size: { width: w, height: h },
+    rotation: el.rotation ?? 0,
+    zIndex: 0,
+    opacity: el.opacity,
+    props,
+  };
 }
 
 /** Pill nhỏ có chữ căn giữa (chip/tag/nút giả). */

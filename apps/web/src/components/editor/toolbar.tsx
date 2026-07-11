@@ -4,35 +4,56 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import {
   ArrowLeft,
+  ChartArea,
+  ChartColumn,
+  ChartLine,
+  ChartPie,
   Check,
   CloudAlert,
+  Donut,
+  Film,
   Image as ImageIcon,
+  LayoutTemplate,
   Loader2,
   Minus,
+  MonitorPlay,
+  Music,
   PanelBottom,
+  Play,
   Plus,
   Redo2,
   Save,
   Shapes,
+  Share2,
   Sparkles,
+  Table,
   Type,
   Undo2,
+  Wand2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { AssetDto, PresignAssetResult, ShapeKind } from "@repo/shared";
-import { api } from "@/lib/api";
+import type { ChartType, MediaKind, ShapeKind } from "@repo/shared";
 import { useUpdateProjectMeta } from "@/hooks/mutations/useUpdateProjectMeta";
+import { useUploadImage } from "@/hooks/useUploadImage";
 import {
+  newChartElement,
   newIconElement,
   newImageElement,
+  newMediaElement,
   newShapeElement,
+  newTableElement,
   newTextElement,
 } from "@/lib/editor/elements";
 import { SHAPE_CATEGORIES, SHAPE_OPTIONS, shapeStyle } from "@/lib/editor/shapes";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { IconPicker, recordRecentIcon } from "./icon-picker";
 import { HeaderFooterDialog } from "./header-footer-dialog";
+import { SaveAsTemplateDialog } from "./save-as-template-dialog";
+import { ExportMenu } from "./export-menu";
+import { ShareDialog } from "./share-dialog";
 import { useEditorStore, type SaveState } from "@/stores/useEditorStore";
+import { useEditorUiStore } from "@/stores/useEditorUiStore";
 
 /** Preview thu nhỏ của 1 shape — vẽ bằng chính clip-path/borderRadius của shape đó. */
 export function ShapeThumb({ kind, className }: { kind: ShapeKind; className?: string }) {
@@ -76,46 +97,50 @@ function SaveIndicator({ state }: { state: SaveState }) {
   }
 }
 
-async function loadImageSize(file: File): Promise<{ width: number; height: number }> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = new Image();
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Không đọc được ảnh"));
-      img.src = url;
-    });
-    return { width: img.naturalWidth, height: img.naturalHeight };
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
 export function Toolbar({
   projectId,
   title,
+  role = "owner",
   onSave,
 }: {
   projectId: string;
   title: string;
+  /** Quyền của user hiện tại — nút Chia sẻ chỉ hiện cho owner. */
+  role?: "owner" | "editor" | "viewer";
   onSave: () => void;
 }) {
   const store = useEditorStore();
+  const toggleLayoutPanel = useEditorUiStore((s) => s.toggleLayoutPanel);
+  const layoutPanelOpen = useEditorUiStore((s) => s.layoutPanelOpen);
+  const toggleAnimationPanel = useEditorUiStore((s) => s.toggleAnimationPanel);
+  const animationPanelOpen = useEditorUiStore((s) => s.animationPanelOpen);
+  const setPresenting = useEditorUiStore((s) => s.setPresenting);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const { uploading, uploadFile } = useUploadImage();
   const [editingTitle, setEditingTitle] = useState(false);
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
   const [iconMenuOpen, setIconMenuOpen] = useState(false);
+  const [chartMenuOpen, setChartMenuOpen] = useState(false);
+  const [mediaMenuOpen, setMediaMenuOpen] = useState(false);
   const [headerFooterOpen, setHeaderFooterOpen] = useState(false);
+  const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const updateMeta = useUpdateProjectMeta(projectId);
+  const confirm = useConfirm();
 
   function handleBack(e: React.MouseEvent) {
     if (store.saveState === "dirty" || store.saveState === "saving" || store.saveState === "error") {
       e.preventDefault();
-      if (window.confirm("Có thay đổi chưa lưu — rời đi sẽ mất. Vẫn quay về?")) {
-        router.push("/dashboard");
-      }
+      void confirm({
+        title: "Có thay đổi chưa lưu",
+        description: "Rời đi bây giờ sẽ mất các thay đổi chưa lưu. Vẫn quay về Dashboard?",
+        destructive: true,
+        confirmText: "Rời đi",
+        cancelText: "Ở lại",
+      }).then((ok) => {
+        if (ok) router.push("/dashboard");
+      });
     }
   }
 
@@ -136,31 +161,8 @@ export function Toolbar({
 
   async function handleFile(file: File) {
     if (!slide) return;
-    setUploading(true);
-    try {
-      const { width, height } = await loadImageSize(file);
-      const presign = await api.post<PresignAssetResult>("/assets/presign", {
-        mimeType: file.type,
-        sizeBytes: file.size,
-      });
-      // PUT thẳng lên R2 — fetch thô vì đây là URL ngoài, không qua wrapper API
-      const put = await fetch(presign.uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-      if (!put.ok) throw new Error("Upload thất bại");
-      const asset = await api.post<AssetDto>("/assets/confirm", {
-        key: presign.key,
-        width,
-        height,
-      });
-      store.addElement(slide.id, newImageElement(slide.elements, asset));
-    } catch {
-      window.alert("Upload ảnh thất bại — thử lại.");
-    } finally {
-      setUploading(false);
-    }
+    const res = await uploadFile(file);
+    if (res) store.addElement(slide.id, newImageElement(slide.elements, res.asset));
   }
 
   return (
@@ -205,6 +207,20 @@ export function Toolbar({
 
       <div className="mx-2 h-5 w-px bg-border" />
 
+      <Button
+        variant={layoutPanelOpen ? "secondary" : "ghost"}
+        size="sm"
+        onClick={toggleLayoutPanel}
+      >
+        <LayoutTemplate /> Bố cục
+      </Button>
+      <Button
+        variant={animationPanelOpen ? "secondary" : "ghost"}
+        size="sm"
+        onClick={toggleAnimationPanel}
+      >
+        <Wand2 /> Hiệu ứng
+      </Button>
       <Button variant="ghost" size="sm" onClick={() => addToSlide((els) => newTextElement(els))}>
         <Type /> Text
       </Button>
@@ -270,6 +286,81 @@ export function Toolbar({
           </>
         )}
       </div>
+      <Button variant="ghost" size="sm" onClick={() => addToSlide((els) => newTableElement(els))}>
+        <Table /> Bảng
+      </Button>
+      <div className="relative">
+        <Button variant="ghost" size="sm" onClick={() => setChartMenuOpen((o) => !o)}>
+          <ChartColumn /> Biểu đồ
+        </Button>
+        {chartMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              role="none"
+              onClick={() => setChartMenuOpen(false)}
+            />
+            <div className="bg-popover absolute top-full left-0 z-50 mt-1 flex w-44 flex-col gap-0.5 rounded-md border p-1.5 shadow-md">
+              {(
+                [
+                  { type: "bar", label: "Biểu đồ cột", Icon: ChartColumn },
+                  { type: "line", label: "Biểu đồ đường", Icon: ChartLine },
+                  { type: "area", label: "Biểu đồ vùng", Icon: ChartArea },
+                  { type: "pie", label: "Biểu đồ tròn", Icon: ChartPie },
+                  { type: "donut", label: "Biểu đồ donut", Icon: Donut },
+                ] satisfies { type: ChartType; label: string; Icon: typeof ChartColumn }[]
+              ).map(({ type, label, Icon }) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    addToSlide((els) => newChartElement(els, type));
+                    setChartMenuOpen(false);
+                  }}
+                  className="hover:bg-accent flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm"
+                >
+                  <Icon className="text-muted-foreground size-4" /> {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="relative">
+        <Button variant="ghost" size="sm" onClick={() => setMediaMenuOpen((o) => !o)}>
+          <Film /> Media
+        </Button>
+        {mediaMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              role="none"
+              onClick={() => setMediaMenuOpen(false)}
+            />
+            <div className="bg-popover absolute top-full left-0 z-50 mt-1 flex w-52 flex-col gap-0.5 rounded-md border p-1.5 shadow-md">
+              {(
+                [
+                  { kind: "video", label: "Video", Icon: Film },
+                  { kind: "audio", label: "Âm thanh", Icon: Music },
+                  { kind: "embed", label: "Nhúng YouTube/Vimeo", Icon: MonitorPlay },
+                ] satisfies { kind: MediaKind; label: string; Icon: typeof Film }[]
+              ).map(({ kind, label, Icon }) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => {
+                    addToSlide((els) => newMediaElement(els, kind));
+                    setMediaMenuOpen(false);
+                  }}
+                  className="hover:bg-accent flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm"
+                >
+                  <Icon className="text-muted-foreground size-4" /> {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       <Button
         variant="ghost"
         size="sm"
@@ -293,8 +384,37 @@ export function Toolbar({
         <PanelBottom /> Header/Footer
       </Button>
       {headerFooterOpen && <HeaderFooterDialog onClose={() => setHeaderFooterOpen(false)} />}
+      <Button variant="ghost" size="sm" onClick={() => setSaveAsTemplateOpen(true)}>
+        <LayoutTemplate /> Lưu làm template
+      </Button>
+      {saveAsTemplateOpen && (
+        <SaveAsTemplateDialog
+          projectId={projectId}
+          defaultTitle={title}
+          onClose={() => setSaveAsTemplateOpen(false)}
+        />
+      )}
 
       <div className="flex-1" />
+
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={!store.presentation || store.presentation.slides.every((s) => s.hidden)}
+        onClick={() => setPresenting(true)}
+        title="Trình chiếu từ slide hiện tại (bỏ qua slide ẩn)"
+      >
+        <Play /> Trình chiếu
+      </Button>
+      <ExportMenu title={title} />
+      {role === "owner" && (
+        <Button variant="ghost" size="sm" onClick={() => setShareOpen(true)}>
+          <Share2 /> Chia sẻ
+        </Button>
+      )}
+      {shareOpen && <ShareDialog projectId={projectId} onClose={() => setShareOpen(false)} />}
+
+      <div className="mx-2 h-5 w-px bg-border" />
 
       <Button variant="ghost" size="icon" disabled={!canUndo} onClick={store.undo} aria-label="Hoàn tác">
         <Undo2 />

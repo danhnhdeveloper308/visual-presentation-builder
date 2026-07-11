@@ -11,3 +11,5 @@ allowBuilds:
   argon2: true
   esbuild: true
   unrs-resolver: true
+  # postinstall của core-js chỉ in banner tài trợ — không cần chạy
+  core-js: false

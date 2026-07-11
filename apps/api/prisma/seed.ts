@@ -1,7 +1,10 @@
 import { PrismaClient, type Prisma } from '@prisma/client';
 import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, ROLES } from '@repo/shared';
 import { SEED_TEMPLATES } from './seed-templates';
+import { SEED_TEMPLATES_GENERATED } from './seed-templates-generated';
 import { SEED_THEMES } from './seed-themes';
+
+const ALL_SEED_TEMPLATES = [...SEED_TEMPLATES, ...SEED_TEMPLATES_GENERATED];
 
 /**
  * Seed roles + permissions mặc định. Idempotent — chạy lại không tạo trùng.
@@ -41,8 +44,8 @@ async function main() {
     }
   }
 
-  // Templates hệ thống — idempotent theo title
-  for (const tpl of SEED_TEMPLATES) {
+  // Templates hệ thống — idempotent theo title (15 tay + 45 sinh từ layout = 60)
+  for (const tpl of ALL_SEED_TEMPLATES) {
     const existing = await prisma.template.findFirst({ where: { title: tpl.title } });
     const data = {
       title: tpl.title,
@@ -57,11 +60,18 @@ async function main() {
     }
   }
 
-  // System themes — idempotent theo name
+  // System themes — idempotent theo name; theme đổi tên từ bộ cũ tìm theo `legacyNames`
+  // trước để RENAME TẠI CHỖ (giữ nguyên id), tránh tạo record trùng lặp mồ côi.
   for (const th of SEED_THEMES) {
-    const existing = await prisma.theme.findFirst({
-      where: { name: th.name, isSystemTheme: true },
-    });
+    let existing = await prisma.theme.findFirst({ where: { name: th.name, isSystemTheme: true } });
+    if (!existing) {
+      for (const legacyName of th.legacyNames ?? []) {
+        existing = await prisma.theme.findFirst({
+          where: { name: legacyName, isSystemTheme: true },
+        });
+        if (existing) break;
+      }
+    }
     const data = {
       name: th.name,
       config: th.config as unknown as Prisma.InputJsonValue,
@@ -75,7 +85,7 @@ async function main() {
   }
 
   console.log(
-    `Seed hoàn tất: roles + permissions + ${SEED_TEMPLATES.length} templates + ${SEED_THEMES.length} themes.`,
+    `Seed hoàn tất: roles + permissions + ${ALL_SEED_TEMPLATES.length} templates + ${SEED_THEMES.length} themes.`,
   );
 }
 

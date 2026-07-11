@@ -16,13 +16,18 @@ model User {
   googleId     String?  @unique
   roleId       String
   role         Role     @relation(fields: [roleId], references: [id])
+  // Admin khóa tài khoản: khác null = bị khóa (chặn login + revoke mọi session lúc khóa)
+  lockedAt          DateTime?
+  // Quota lưu trữ asset (bytes) — mặc định 500MB (LIMITS.USER_STORAGE_QUOTA_DEFAULT_BYTES), admin chỉnh từng user
+  storageQuotaBytes Int       @default(524288000)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sessions       Session[]
-  projects       Project[]
-  assets         Asset[]
-  collaborations ProjectCollaborator[]
+  sessions          Session[]
+  projects          Project[]
+  assets            Asset[]
+  collaborations    ProjectCollaborator[]
+  templateFavorites TemplateFavorite[]
 }
 
 model Role {
@@ -81,6 +86,8 @@ model Project {
   thumbnailUrl String?
   status       ProjectStatus @default(draft)
   deletedAt    DateTime? // soft delete
+  // Share public bằng link: token ngẫu nhiên trong URL /p/<token>, null = tắt chia sẻ
+  shareToken   String?       @unique
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -142,5 +149,19 @@ model Template {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  favorites TemplateFavorite[]
+
   @@index([category])
+}
+
+// Đánh dấu yêu thích template (hệ thống hoặc của người khác) — riêng theo từng user
+model TemplateFavorite {
+  id         String   @id @default(cuid())
+  userId     String
+  templateId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, templateId])
 }

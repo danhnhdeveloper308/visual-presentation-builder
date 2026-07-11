@@ -21,9 +21,9 @@ import {
 function centerCard(extra: Parameters<typeof card>[4] = {}) {
   return {
     box: card(390, 200, 500, 320, { fill: C.white, ...extra }),
-    title: (color = C.heading) =>
+    title: (color: string = C.heading) =>
       text(438, 248, 404, 40, "Tiêu đề card", { fontSize: 28, fontWeight: 700, color }),
-    body: (color = C.body) =>
+    body: (color: string = C.body) =>
       text(438, 306, 404, 160, "Nội dung mô tả bên trong card — thay bằng thông tin của bạn.", {
         fontSize: 18,
         color,

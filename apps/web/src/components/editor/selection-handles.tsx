@@ -82,6 +82,18 @@ export function SelectionHandles({
         y = s.y + (s.height - height);
       }
 
+      // Kéo GÓC: ảnh khóa tỉ lệ mặc định (Shift = tự do); element khác giữ Shift = khóa tỉ lệ
+      const corner = dir.length === 2;
+      const lockRatio = corner && (element.type === "image" ? !ev.shiftKey : ev.shiftKey);
+      if (lockRatio && s.width > 0 && s.height > 0) {
+        const ratio = s.width / s.height;
+        if (width / s.width >= height / s.height) height = Math.max(MIN_SIZE, width / ratio);
+        else width = Math.max(MIN_SIZE, height * ratio);
+        // neo lại cạnh đối diện sau khi chỉnh kích thước theo tỉ lệ
+        if (dir.includes("w")) x = s.x + (s.width - width);
+        if (dir.includes("n")) y = s.y + (s.height - height);
+      }
+
       historyOnce(s);
       useEditorStore.getState().updateElement(slideId, element.id, (el) => ({
         ...el,

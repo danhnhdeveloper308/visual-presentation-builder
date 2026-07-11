@@ -36,44 +36,76 @@
 - [x] Apply All Slides / Apply Current Slide (slide khác bị ẩn qua cờ `hideHeaderFooter` per-slide) / Hide on Title Slide.
 - [x] Render đồng nhất: canvas + sidebar preview + thumbnail (`HeaderFooterLayer`, bố cục PP: ngày trái — footer giữa — số trang phải, header trên giữa).
 
+### I.6 Icon: nền + viền ✅ (2026-07-09)
+- [x] IconElement props thêm (đều optional, additive): `backgroundColor` (checkbox "Nền phía sau icon") + `backgroundRadius`, `borderColor` (checkbox "Viền none/màu") + `borderWidth`. Render khung nền/viền ở `element-style.ts` (`iconHasBox`/`iconBoxStyle`) dùng chung editor + preview. Inspector icon có toggle bật/tắt từng phần.
+
+### I.7 Ảnh: upload thật + bo góc từng góc + shadow theo hướng ✅ (2026-07-09)
+- [x] **Layout có ảnh giờ là image element THẬT** (url rỗng = placeholder) thay vì icon: trên canvas hiện khung "Nhấn đúp để tải ảnh" → upload R2 thật (hook `useUploadImage` dùng chung toolbar + placeholder + Inspector "Thay ảnh"). Schema `image.url` nhận `""`.
+- [x] **Bo góc từng góc** (`cornerRadius: {topLeft,topRight,bottomLeft,bottomRight}`) — Inspector 4 ô; giữ `borderRadius` đồng đều cho content cũ.
+- [x] **Shadow chọn nhiều hướng** (`shadow: { directions: (top|bottom|left|right)[], blur }`) — offset suy từ hướng (`imageBoxShadow`), Inspector chọn hướng + chỉnh blur.
+
+### I.8 Nhóm (group) + đa chọn kiểu Canva ✅ (2026-07-09)
+- [x] **Ctrl/Cmd+click** chọn nhiều element; ElementBase thêm `groupId?` (additive).
+- [x] **Kéo vùng (marquee)** trên nền slide để chọn mọi element GIAO với vùng (bỏ qua element khoá; chạm element có group → chọn cả nhóm). Vẽ overlay `border-primary`, toạ độ logic chia zoom, kéo <4px = click bỏ chọn. Store `setSelection(ids)`.
+- [x] **Nhóm/Bỏ nhóm** (nút Inspector khi ≥2 chọn + phím `Ctrl+G` / `Ctrl+Shift+G`). Chọn 1 element trong nhóm → chọn cả nhóm; **kéo di chuyển cả nhóm cùng lúc** (live qua `groupDrag` offset, không đợi thả).
+- [x] **Nhấn đúp vào element trong nhóm** → "vào" nhóm (`activeGroupId`) sửa riêng element con (resize/recolor/text) mà không cần bỏ nhóm; click nền thoát.
+- [x] Store: `selectedElementIds` (thay `selectedElementId`), `setSelection`, `moveElements`, `duplicateSelected` (giữ liên kết nhóm bằng groupId mới), `removeSelected`; nudge/Delete/Ctrl+D áp cho toàn bộ selection. Handle resize/rotate chỉ hiện khi chọn đúng 1 element.
+- [x] **Fix**: selector zustand không được trả object mới mỗi render (gây "getSnapshot should be cached" → lặp vô hạn) — chọn primitive/reference ổn định, tính dẫn xuất ngoài selector.
+
+### I.9 Smart alignment guides (căn chỉnh khi kéo) ✅ (2026-07-09)
+- [x] Khi kéo element (1 hoặc nhóm) hiện **đường nét đứt dọc/ngang** khi cạnh/tâm element bám vào cạnh/tâm của element khác hoặc của slide (0 / giữa / hết) và **tự bám (snap)** vào đúng vị trí.
+- [x] Logic tách hàm THUẦN `apps/web/src/lib/editor/alignment.ts` (`computeAlignment`) — so 3 mốc mỗi trục (cạnh đầu/tâm/cạnh cuối) với mốc target + slide, chọn lệch nhỏ nhất trong ngưỡng; ngưỡng theo **px màn hình** (chia zoom) để đều ở mọi mức zoom. **Có test độc lập 14/14 pass** (chạy bằng jiti).
+- [x] Hình ảnh khi kéo và vị trí lưu KHỚP nhau: cùng dùng `resolveDrag` (offset đã-snap) cho `onDragMove` (vẽ guide) lẫn `onDragEnd` (commit) — không nhảy khi thả. Guide (component `AlignmentGuides`) và element đang kéo subscribe `dragGuides` riêng nên chỉ chúng re-render mỗi frame.
+
 ---
 
-## II. Template System ⬜
+## II. Template System ✅ (2026-07-10) — verify runtime đầy đủ bằng curl + DB thật
 
-### II.1 System Templates (hiện có 15 → cần ≥60)
-- ⬜ Bổ sung template seed đến tối thiểu **60**, chia category: Business, Startup, Education, Portfolio, Product, Marketing, Pitch Deck, Medical, Timeline, Finance, Resume, Technology, Creative, Minimal (mở rộng enum category hiện tại).
-- Cách làm: viết thêm vào `apps/api/prisma/seed-templates.ts` (idempotent theo title, validate `presentationSchema.parse` lúc seed). Trang `/templates` đã render preview thật theo category — chỉ cần data.
+### II.1 System Templates — đủ 60
+- [x] 60 template (15 tay hand-crafted có sẵn + **45 SINH TỰ ĐỘNG** bằng cách ghép 4-6 layout/template từ kho **151 layout** đã có ở mục V — tận dụng lại code layout đã test kỹ thay vì viết tay từng slide). Đủ 14 category: Business (8), Startup (4), Education (5), Portfolio (3), Product (4), Marketing (4), Pitch Deck (4), Medical (3), Timeline (3), Finance (4), Resume (3), Technology (4), Creative (5), Minimal (5).
+- [x] Script sinh (chạy 1 lần qua jiti, không phải phần app runtime): định nghĩa "recipe" `{title, category, layoutIds[]}` cho từng template mới → gọi `buildLayoutSlide(id)` từng layout → validate `presentationSchema.parse` → xuất `apps/api/prisma/seed-templates-generated.ts` (file dữ liệu tĩnh, có ghi chú "không hand-edit"). `seed.ts` gộp `[...SEED_TEMPLATES(15), ...SEED_TEMPLATES_GENERATED(45)]`, vẫn idempotent theo title.
+- **Bài học vận hành**: lần seed đầu phát hiện 1 title trùng giữa bộ tay và bộ sinh ("Portfolio cá nhân") khiến chỉ ra 59/60 record (2 nguồn cùng title ghi đè lẫn nhau qua idempotent-by-title) — đổi tên bản sinh thành "Portfolio cá nhân đa năng", seed lại tự phục hồi đúng 60, không cần xóa tay. Verify seed 3 lần liên tiếp ổn định ở 60, không trùng title.
 
-### II.2 User Templates (My Templates) ⬜
-- ⬜ **Save as Template** từ editor (copy content hiện tại → bảng `Template` với `createdBy = userId`, `isPublic = false`).
-- ⬜ Trang quản lý template của tôi: Duplicate / Rename / Delete / Preview / Favorite; thumbnail (tái dùng pipeline chụp `SlidePreview` + R2 key cố định như project).
-- ⬜ Phân tách rõ UI: "System Templates" / "My Templates".
-- BE: bảng `Template` đã có `createdBy`, `isPublic` — cần thêm endpoints CRUD (ownership check như projects), field `favorite` nên là bảng nối `TemplateFavorite(userId, templateId)` (không đặt cột bool trên Template vì favorite là per-user).
+### II.2 User Templates (My Templates) — đủ
+- [x] **Prisma**: bảng mới `TemplateFavorite(userId, templateId)` (`@@unique`, migration `add_template_favorite`) — favorite là per-user, không đặt cột bool trên `Template`.
+- [x] **Permissions**: thêm `TEMPLATE_CREATE/UPDATE/DELETE` cho role `user` (giữ `TEMPLATE_MANAGE` riêng cho quản trị hệ thống, chưa dùng).
+- [x] **BE `TemplatesService`/`TemplatesController`** (`ProjectsModule` export `ProjectsService` để tái dùng ownership-check có sẵn): `GET /templates` (system + của user, gộp danh sách, kèm `isFavorite`), `GET /templates/:id` (thấy được: public hoặc của mình), `POST /templates/from-project/:projectId` (**Save as Template** — đọc content qua `ProjectsService.get()`, tự enforce ownership project), `POST /templates/:id/duplicate` (nhân bản BẤT KỲ template thấy được thành bản riêng, sinh lại id slide/element), `PATCH /templates/:id` (rename/đổi category — chỉ chủ sở hữu, KHÔNG sửa được template hệ thống), `DELETE /templates/:id` (chỉ chủ sở hữu), `POST`/`DELETE /templates/:id/favorite` (đánh dấu/bỏ yêu thích — hoạt động trên mọi template thấy được).
+- [x] Tạo project từ template: mở rộng `ProjectsService.create()` cho phép `templateId` là template **của chính mình** (trước đây chỉ nhận `isPublic`).
+- [x] **FE**: trang `/templates` viết lại — tab "Hệ thống"/"Của tôi" + filter "Yêu thích", search theo tên/category, mỗi card có nút Dùng/Nhân bản/★Yêu thích + (bản riêng thêm Sửa/Xóa); `TemplateRenameDialog` (đổi tên + category); nút **"Lưu làm template"** trong Toolbar editor (`SaveAsTemplateDialog`) mở từ project đang chỉnh sửa. Preview vẫn render THẬT bằng `SlidePreview` slide đầu (không cần pipeline thumbnail riêng — nhất quán với thiết kế cũ).
+- **Verify runtime** (curl + DB Postgres thật, dọn sạch dữ liệu test sau cùng): Save as Template từ project thật → xuất hiện đúng ở tab "Của tôi"; validate category sai enum → 400; rename + đổi category OK; favorite/unfavorite hoạt động cả trên template CỦA MÌNH lẫn template HỆ THỐNG; duplicate từ system template sinh lại đúng số slide + id mới; **tạo project từ template riêng của mình** thành công (trước đây chỉ tạo được từ public); **không sửa/xóa được template hệ thống** dù đã login (404); **IDOR đầy đủ**: user B không thấy template riêng của A trong list, không sửa/xóa được (404), không xem chi tiết được (404 qua `GET /:id`), không tạo project từ template private của A được (404).
 
-## III. Theme System 🔶
+## III. Theme System ✅ (2026-07-10) — verify runtime đầy đủ bằng curl + DB thật
 
-### III.1 System Themes (hiện có 8 → cần 20)
-- ⬜ Seed đủ **20** theme: Light, Dark, Corporate, Ocean, Forest, Purple, Orange, Sunset, Pastel, Modern, Material, Minimal, Apple, Google, Gradient, Neon, Elegant, Luxury, Flat, Professional (map/đổi tên 8 theme hiện có cho khớp bộ này, giữ id cũ nếu project đang tham chiếu).
+### III.1 System Themes — đủ 20
+- [x] 20 theme: Light, Dark, Corporate, Ocean, Forest, Purple, Orange, Sunset, Pastel, Modern, Material, Minimal, Apple, Google, Gradient, Neon, Elegant, Luxury, Flat, Professional — `apps/api/prisma/seed-themes.ts`. 8 theme gốc **đổi tên tại chỗ, giữ nguyên id** qua cơ chế `legacyNames` trong `seed.ts` (tìm theo tên cũ trước khi tạo mới → update, không tạo record mồ côi) — verify: seed 2 lần liên tiếp vẫn đúng 20 record, không trùng tên, không còn tên cũ.
 
-### III.2 User Themes ⬜
-- ⬜ Mở rộng `themeConfigSchema`: thêm `accent2?`, `shadow?`, `borderRadius?`, background gradient — CHỈ thêm optional field.
-- ⬜ Tạo/sửa theme riêng (font pair heading/body, palette, accent, background, shadow, border radius); trang quản lý System Themes / My Themes; Clone / Rename / Delete / **Export/Import JSON** (validate `themeConfigSchema` khi import).
-- BE: bảng `Theme` đã có `createdBy`, `isSystemTheme` — cần endpoints CRUD + ownership.
+### III.2 User Themes (My Themes) — đủ
+- [x] **Schema** (`themeConfigSchema`, additive optional): `colors.accent2`, `shadow` (boolean), `borderRadius` (number); `colors.background` chấp nhận cả màu đặc lẫn CSS gradient (cùng convention `includes("gradient(")` với `ShapeElement.fill`).
+- [x] **`applyTheme` (store) dùng đủ field mới**: `accent2` tô icon (tách sắc độ khỏi shape dùng `accent`), `shadow` bật đổ bóng cho shape + hướng "bottom" cho ảnh, `borderRadius` áp cho shape rect/rounded-rect và `image.cornerRadius`, background gradient nhận diện tự động.
+- [x] **BE CRUD** (`themes.controller.ts`/`.service.ts`, permission mới `THEME_CREATE/UPDATE/DELETE` cho role `user`, `THEME_MANAGE` giữ riêng cho quản trị hệ thống — chưa dùng): `GET /themes` (system + theme riêng của user, gộp 1 danh sách), `POST /themes` (tạo), `PATCH /themes/:id` (sửa — chỉ chủ sở hữu, KHÔNG sửa được theme hệ thống), `DELETE /themes/:id` (chỉ chủ sở hữu), `POST /themes/:id/clone` (nhân bản BẤT KỲ theme thấy được — hệ thống hoặc của mình — thành theme riêng mới).
+- [x] **FE**: trang `/themes` (tab "Theme hệ thống" / "Theme của tôi", card swatch, nút Nhân bản/Sửa/Xóa/Xuất JSON, nút "Nhập JSON" + "Tạo theme"); `ThemeEditorDialog` (form đủ field: font pair, màu nền màu-hoặc-gradient + preset, heading/body/accent/accent2, shadow, borderRadius, preview trực tiếp); `ThemePicker` trong Inspector hiện badge "· của tôi" cho theme riêng + link "Quản lý theme →"; link "Theme" ở dashboard; `proxy.ts` thêm `/themes`.
+- **Verify runtime** (curl + DB Postgres thật, dọn sạch dữ liệu test sau cùng): tạo/sửa/xóa theme riêng OK; **clone từ system theme** sao chép đúng toàn bộ config (kể cả gradient/shadow/borderRadius); **không sửa/xóa được theme hệ thống** dù đã đăng nhập (404); **IDOR**: user B không thấy/sửa/xóa được theme riêng của user A (404 + không lọt vào danh sách); validate body thiếu field bắt buộc → 400 đúng message zod.
 
-## IV. Soft Delete — Recycle Bin ⬜
-- Hiện trạng: `Project.deletedAt` đã soft delete, nhưng CHƯA có UI thùng rác.
-- ⬜ Trang **Recycle Bin**: list project đã xóa, Restore, Delete Permanently (xóa record + thumbnail/asset R2), hiển thị **số ngày còn lại** (90 − số ngày từ `deletedAt`), search + filter.
-- ⬜ **Cron tự xóa sau 90 ngày**: dùng `@nestjs/schedule` (`@Cron` daily) trong module `projects` — xóa vĩnh viễn record có `deletedAt < now − 90d`.
-- BE endpoints: `GET /projects/trash`, `POST /projects/:id/restore`, `DELETE /projects/:id/permanent` (ownership check đủ cả 3).
+## IV. Soft Delete — Recycle Bin ✅ (2026-07-10) — verify runtime đầy đủ bằng curl + DB
 
-## V. Layout System — 151 System Layout ⬜ (phần quan trọng nhất)
+- [x] **BE endpoints** (`projects.controller.ts`, ownership check đủ cả 3 — IDOR verify bằng 2 user): `GET /projects/trash` (đặt TRƯỚC `:id` để không bị Nest match nhầm), `POST /projects/:id/restore`, `DELETE /projects/:id/permanent`.
+- [x] **`ProjectsService`**: `listTrash` (project `deletedAt != null` của owner, mới xóa lên trước), `restore` (set `deletedAt: null`, 404 nếu không ở trong trash), `permanentDelete` (chỉ cho phép nếu ĐÃ ở trong trash — chặn xóa tắt khi chưa qua soft-delete), `purgeProject` dùng chung (xóa thumbnail R2 theo key cố định `{ownerId}/thumbnails/{projectId}.png` nếu có Asset record + xóa Asset + xóa row Project; lỗi R2 chỉ log warn, không chặn xóa DB).
+- [x] **Cron 90 ngày**: `@nestjs/schedule` (`ScheduleModule.forRoot()` ở AppModule) + `@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT) purgeExpiredTrash()` trong `ProjectsService` — quét toàn bộ project `deletedAt < now − LIMITS.TRASH_RETENTION_DAYS ngày` (hằng số mới trong `@repo/shared`, mặc định 90) và purge từng cái.
+- [x] **Trang `/trash`**: list dạng card (thumbnail mờ, tiêu đề, thời điểm xóa), badge **"Còn N ngày"** (đỏ khi ≤7 ngày), **search** theo tên, **filter** "Tất cả / Sắp hết hạn ≤7 ngày", nút **Khôi phục** + **Xóa vĩnh viễn** (confirm, cảnh báo không thể hoàn tác), empty state phân biệt "trống" vs "không khớp tìm kiếm". Link "Thùng rác" ở dashboard; `proxy.ts` matcher thêm `/trash`.
+- **Verify runtime** (curl + script gọi thẳng `NestFactory.createApplicationContext`, trên DB Postgres local thật): soft-delete → biến mất khỏi list thường + xuất hiện trong trash kèm `deletedAt` đúng ⟶ restore → quay lại list thường, biến mất khỏi trash ⟶ xóa vĩnh viễn khi CHƯA vào trash → 404 ⟶ xóa vĩnh viễn hợp lệ → 200, gọi lần 2 → 404 (idempotent) ⟶ **IDOR**: user B không thấy/restore/xóa được project của user A (404 cả 3 endpoint) ⟶ **cron**: project xóa mềm 91 ngày trước bị purge, project xóa mềm 10 ngày trước KHÔNG bị đụng, project khác trong DB không bị ảnh hưởng ⟶ project có Asset thumbnail đính kèm: xóa vĩnh viễn xóa cả row Project lẫn row Asset, không crash dù object R2 không tồn tại thật.
+
+## V. Layout System — 151 System Layout ✅ (xong 2026-07-09)
 
 Layout = bộ khung element dựng sẵn (placeholder text/image/shape ở toạ độ 1280×720) áp vào **1 slide** hoặc **toàn bộ presentation**; áp xong vẫn chỉnh sửa tự do như element thường.
 
-**Thiết kế đề xuất (chốt khi implement):**
-- Mỗi layout là 1 factory `(theme?) => Slide` đặt ở FE (`lib/editor/layouts/…`, thuần data — không cần DB), có `id`, `label`, `group`, thumbnail render bằng `SlidePreview` (không cần ảnh tĩnh).
-- Panel "Layout" trong editor: gallery nhóm theo 18 nhóm, click/drag để áp: **áp cho slide hiện tại** (thay elements bằng placeholder, giữ background nếu layout không định nghĩa) hoặc **thêm slide mới theo layout**; "áp toàn presentation" = chọn bộ layout cho từng loại slide (title/content/closing) — làm đợt 2.
-- Layout dùng element hiện có (text/shape/icon/image); các nhóm cần Table/Chart/Media chỉ làm được SAU khi có element tương ứng (đánh dấu ⛔ phụ thuộc bên dưới).
+**Đã triển khai (đủ 151/151 — verify bằng script parse `presentationSchema` cả 151, pass):**
+- DSL dựng layout ở `apps/web/src/lib/editor/layouts/helpers.ts` (`slide/text/heading/shape/card/line/connector/icon/imagePh/chip/badge/titleBlock` + bảng màu `C`). Mỗi layout là factory `build(): Slide` sinh id slide + element MỚI mỗi lần gọi (áp nhiều lần không trùng id). Thuần FE, không cần DB.
+- 6 file nhóm: `basic.ts` (Title/Quote/List/Column), `cards.ts` (Card/Comparison/Team/Product), `visual.ts` (Image/Media/Modern), `flow.ts` (Timeline/Process/Diagram), `data.ts` (Statistics/Table), `domain.ts` (Business/Education). Registry `index.ts` gộp 18 nhóm + `LAYOUT_MAP` + `buildLayoutSlide(id)` + `LAYOUT_COUNT`.
+- **LayoutPanel** (`components/editor/layout-panel.tsx`): drawer trái, bật/tắt bằng nút "Bố cục" ở toolbar (state ở `useEditorUiStore`); search realtime + filter 18 nhóm; mỗi ô là thumbnail render THẬT bằng `SlidePreview`. Mặc định hiện 1 nhóm (không render đồng thời 151 preview — giữ hiệu năng).
+- **3 cách áp** (store: `applyLayoutToSlide` / `addSlideFromLayout` / `applyLayoutToAll`, đều undo được, tôn trọng slide `locked`): **click** = áp vào slide hiện tại (thay background + elements, giữ id slide + cờ locked/hidden); **nút +** trên ô = thêm slide mới từ layout; **kéo-thả** ô vào canvas = áp vào slide đang xem (MIME `application/x-layout-id`); **"Áp mọi slide"** (theo nhóm đang chọn, có confirm) = thay mọi slide bằng layout đầu nhóm.
+- Áp xong → mọi element là text/shape/icon/image bình thường, chỉnh sửa/di chuyển/resize tự do.
+
+**Ghi chú giới hạn hiện tại (nâng cấp ở Phase 2c):** nhóm Statistics (9) và Table (6) đang dựng chart/bảng bằng PLACEHOLDER shape/text — khi có element Chart/Table thật sẽ thay bằng element động; nhóm Media (6) dùng khung mockup tĩnh (chưa có element video/audio/embed). "Áp toàn presentation theo bộ layout title/content/closing" (chọn layout riêng cho từng loại slide) để đợt 2 — hiện "Áp mọi slide" dùng chung 1 layout.
 
 Nhóm (tổng 151):
 1. **Title (10):** Title Only, Title + Subtitle, Center Hero Title, Full Width Title, Left Aligned Title, Right Aligned Title, Title + Caption, Section Divider, Chapter Cover, Closing/Thank You
@@ -97,32 +129,15 @@ Nhóm (tổng 151):
 
 Thứ tự triển khai gợi ý: (đợt 1) Title + Column + List + Quote + Business + Education + Card ≈ 60 layout chỉ cần text/shape/icon → (đợt 2) Image/Team/Product/Modern/Comparison/Process/Timeline/Diagram → (đợt 3 sau khi có Table/Chart/Media) Statistics/Table/Media.
 
-## VI. Animation System ⬜ (tính năng cốt lõi còn thiếu hoàn toàn)
+## VI. Animation System ✅ (2026-07-09) — per-element kiểu PowerPoint
 
-Hệ thống animation per-element tương đương PowerPoint.
-
-**Thiết kế đề xuất (chốt khi implement):**
-- Schema (shared, additive): `slide.animations?: Animation[]` — thứ tự mảng = thứ tự phát.
-  ```ts
-  type Animation = {
-    id: string;
-    elementId: string;
-    effect: "fade" | "appear" | "fly-in" | "zoom" | "grow" | "wipe" | "split" | "float"
-          | "bounce" | "spin" | "pulse" | "fade-out" | "fly-out" | "zoom-out" | "motion-path";
-    group: "entrance" | "emphasis" | "exit" | "motion";
-    trigger: "on-click" | "with-previous" | "after-previous";
-    durationMs: number; delayMs: number;
-    repeat?: number; autoReverse?: boolean;
-    easing?: "linear" | "ease" | "ease-in" | "ease-out" | "ease-in-out"; // smooth start/end
-    direction?: "left" | "right" | "top" | "bottom";                     // fly/wipe/split
-    path?: { x: number; y: number }[];                                   // motion-path
-  };
-  ```
-- Render: Web Animations API (element.animate) trên DOM element sẵn có — không cần lib ngoài; preview ngay trong editor.
-- **Animation Pane** (panel phải, tab riêng): list animation của slide (thứ tự, loại, trigger, duration, delay), reorder (move up/down), sửa nhanh, xóa, copy/paste animation sang element khác; số thứ tự animation hiển thị trên element ở canvas (badge nhỏ như PP).
-- Nút "Phát thử" chạy chuỗi animation của slide hiện tại.
-- **Default animation**: cấu hình hiệu ứng mặc định khi thêm mới Shape/Text/Image (lưu localStorage hoặc user settings).
-- Phase 3 trình chiếu: runtime phát animation theo trigger (click → next step thay vì next slide khi còn animation chưa phát).
+- [x] **Schema** (shared, additive optional): `slide.animations?: Animation[]` (thứ tự mảng = thứ tự phát). `Animation = { id, elementId, group, effect, trigger, durationMs, delayMs, repeat?, autoReverse?, easing?, direction? }`.
+- [x] **21 hiệu ứng / 4 nhóm**: Entrance (fade-in, appear, fly-in, zoom-in, grow-in, wipe-in, split-in, float-in, bounce-in, spin-in), Emphasis (pulse, spin, flash, shake, grow-shrink), Exit (fade-out, fly-out, zoom-out, shrink-out, wipe-out), Motion (motion-line). Đủ Fade/Appear/Fly/Zoom/Grow/Wipe/Split/Float/Bounce/Spin/Pulse/Fade Out/Fly Out/Motion Path theo yêu cầu.
+- [x] **Trigger**: on-click / with-previous / after-previous. **Timing**: duration, delay, repeat, autoReverse (đảo chiều), easing (linear/ease/ease-in=smooth start/ease-out=smooth end/ease-in-out).
+- [x] **Render**: Web Animations API (`element.animate`) — `apps/web/src/lib/editor/animations.ts` (`buildAnimation` sinh keyframes+options, giữ rotation; `playSlideAnimations` phát theo bước: with-previous cùng bước, on-click/after-previous đợi bước trước; pre-hide entrance; fill forwards cho entrance/exit; restore sau khi phát). **Có test 129/129** (schema + keyframes mọi hiệu ứng + iterations/direction).
+- [x] **Animation Pane** (`animation-panel.tsx`, panel phải bật bằng nút "Hiệu ứng"): list theo thứ tự (badge số + màu theo nhóm, tên element, hiệu ứng), sửa nhanh trigger/duration/delay/direction/repeat/autoReverse/easing, **reorder** (lên/xuống), xoá, **copy/paste hiệu ứng sang element khác** (clipboard ở ui store), **xem thử từng hiệu ứng** + **"Phát thử slide"**. Badge số thứ tự hiện trên element ở canvas khi mở pane.
+- [x] **Default animation** khi thêm mới theo loại (text/shape/image/icon) — lưu localStorage, tự thêm animation lúc `addElement`.
+- [ ] Phase 3 trình chiếu: runtime phát theo trigger khi trình chiếu fullscreen (chưa có chế độ trình chiếu — làm ở Phase 3). Motion path hiện là đường thẳng theo hướng; curve/custom-draw để mở rộng sau.
 
 ---
 

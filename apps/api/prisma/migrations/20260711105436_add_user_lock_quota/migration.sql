@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "lockedAt" TIMESTAMP(3),
+ADD COLUMN     "storageQuotaBytes" INTEGER NOT NULL DEFAULT 524288000;
+

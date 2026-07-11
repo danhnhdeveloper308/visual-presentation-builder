@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 export function useLogin() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (input: LoginInput) => api.post<AuthUser>("/auth/login", input),
     onSuccess: (user) => {
       queryClient.setQueryData(["me"], user);

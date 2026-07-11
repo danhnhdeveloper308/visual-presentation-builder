@@ -2,10 +2,18 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { ROLES, type AuthUser, type LoginInput, type RegisterInput } from '@repo/shared';
+import {
+  ROLES,
+  SUPERADMIN_EMAIL,
+  type AuthUser,
+  type LoginInput,
+  type RegisterInput,
+  type SessionDto,
+} from '@repo/shared';
 import type { User, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TokenService, REFRESH_TOKEN_TTL_MS } from './token.service';
@@ -26,6 +34,7 @@ export type GoogleProfile = {
 type ClientMeta = { userAgent?: string; ipAddress?: string };
 
 const INVALID_CREDENTIALS = 'Email hoặc mật khẩu không đúng';
+const ACCOUNT_LOCKED = 'Tài khoản đã bị khóa — liên hệ quản trị viên';
 
 @Injectable()
 export class AuthService {
@@ -58,6 +67,7 @@ export class AuthService {
 
     const valid = await argon2.verify(user.passwordHash, input.password);
     if (!valid) throw new UnauthorizedException(INVALID_CREDENTIALS);
+    if (user.lockedAt) throw new UnauthorizedException(ACCOUNT_LOCKED);
 
     return this.createSession(user, meta);
   }
@@ -92,6 +102,7 @@ export class AuthService {
       }
     }
 
+    if (user.lockedAt) throw new UnauthorizedException(ACCOUNT_LOCKED);
     return this.createSession(user, meta);
   }
 
@@ -166,6 +177,18 @@ export class AuthService {
     user: User & { role: Role },
     meta: ClientMeta,
   ): Promise<AuthResult> {
+    // SUPERADMIN (email chốt cứng) luôn có role admin — tự thăng ngay khi đăng nhập/đăng ký
+    if (user.email === SUPERADMIN_EMAIL && user.role.name !== ROLES.ADMIN) {
+      const adminRole = await this.prisma.role.findUnique({ where: { name: ROLES.ADMIN } });
+      if (adminRole) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { roleId: adminRole.id },
+          include: { role: true },
+        });
+      }
+    }
+
     const refreshToken = this.tokens.generateRefreshToken();
     const session = await this.prisma.session.create({
       data: {
@@ -196,6 +219,47 @@ export class AuthService {
       name: user.name,
       avatarUrl: user.avatarUrl,
       role: user.role.name,
+      hasPassword: user.passwordHash != null,
     };
+  }
+
+  /* ---------- Quản lý phiên đăng nhập (trang tài khoản) ---------- */
+
+  /** Phiên còn hiệu lực của user — phiên đang gọi API đánh dấu `current`. */
+  async listSessions(userId: string, currentSessionId: string): Promise<SessionDto[]> {
+    const sessions = await this.prisma.session.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, userAgent: true, ipAddress: true, createdAt: true, expiresAt: true },
+    });
+    return sessions.map((s) => ({
+      id: s.id,
+      userAgent: s.userAgent,
+      ipAddress: s.ipAddress,
+      createdAt: s.createdAt.toISOString(),
+      expiresAt: s.expiresAt.toISOString(),
+      current: s.id === currentSessionId,
+    }));
+  }
+
+  /**
+   * Thu hồi 1 phiên — AuthGuard check `revokedAt` trong DB mỗi request nên thiết bị đó
+   * bị đăng xuất NGAY ở request kế tiếp (không cần đợi access token hết hạn).
+   */
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const { count } = await this.prisma.session.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (count === 0) throw new NotFoundException('Không tìm thấy phiên đăng nhập');
+  }
+
+  /** Đăng xuất mọi thiết bị KHÁC (giữ phiên hiện tại). */
+  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<number> {
+    const { count } = await this.prisma.session.updateMany({
+      where: { userId, id: { not: currentSessionId }, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return count;
   }
 }

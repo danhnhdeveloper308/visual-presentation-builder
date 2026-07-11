@@ -40,6 +40,19 @@ export type ProjectSummary = {
 
 export type ProjectDetail = ProjectSummary & {
   content: z.infer<typeof presentationSchema>;
+  /** Quyền của user hiện tại: owner | editor | viewer (project được share). */
+  myRole: "owner" | "editor" | "viewer";
+  /** Token share public — CHỈ trả cho owner, người khác luôn null. */
+  shareToken: string | null;
 };
 
 export type SaveProjectResult = { revision: number };
+
+/** Project trong Recycle Bin — kèm thời điểm xóa để FE tính số ngày còn lại. */
+export type TrashProjectSummary = ProjectSummary & { deletedAt: string };
+
+/** Project người khác share cho tôi (dashboard mục "Được chia sẻ"). */
+export type SharedProjectSummary = ProjectSummary & {
+  role: "editor" | "viewer";
+  owner: { name: string; email: string };
+};
